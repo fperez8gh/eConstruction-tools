@@ -152,7 +152,7 @@
   </table>
   <div id="volumeSummary">
     <div id="totalRebarVolume"></div>
-    <label for="formVolume">Form volume (cubic inches):</label>
+    <label for="formVolume">Form volume (cubic feet):</label>
     <input type="number" id="formVolume" min="0" inputmode="numeric" value="">
     <div id="actualConcreteVolume"></div>
   </div>
@@ -339,12 +339,12 @@
         // Update volume summary only if rebars are selected
         if (checked.length > 0) {
           volumeSummary.style.display = "block";
-          const formVolume = parseFloat(formVolumeValue || 0); // Treat empty as 0 for calculations
+          const formVolume = parseFloat(formVolumeValue || 0) * 1728; // User enters form volume in ft³; convert to in³ for calculation
           const actualConcreteVol = formVolume - totalVolume;
-          totalRebarVolume.textContent = `Total Rebar Volume: ${totalVolume.toFixed(2)} in³`;
-          actualConcreteVolume.textContent = `Actual Concrete Volume: ${actualConcreteVol.toFixed(2)} in³`;
+          totalRebarVolume.textContent = `Total Rebar Volume: ${totalVolume.toFixed(2)} in³ (${(totalVolume / 1728).toFixed(4)} ft³)`;
+          actualConcreteVolume.textContent = `Actual Concrete Volume: ${(actualConcreteVol / 1728).toFixed(2)} ft³ (${(actualConcreteVol / 46656).toFixed(3)} yd³)`;
           console.log("volumeSummary shown"); // Debug
-          console.log(`Form volume: ${formVolume.toFixed(2)} in³, Total rebar volume: ${totalVolume.toFixed(2)} in³, Actual concrete volume: ${actualConcreteVol.toFixed(2)} in³`); // Debug
+          console.log(`Form volume: ${(formVolume / 1728).toFixed(2)} ft³, Total rebar volume: ${totalVolume.toFixed(2)} in³, Actual concrete volume: ${(actualConcreteVol / 1728).toFixed(2)} ft³`); // Debug
         } else {
           volumeSummary.style.display = "none";
           totalRebarVolume.textContent = "";
