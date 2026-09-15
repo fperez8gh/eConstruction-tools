@@ -1,0 +1,1306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Daily Force Account Report</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            font-size: 13px;
+            background-color: #f4f4f9;
+        }
+        .main-container {
+            max-width: 1100px;
+            margin: auto;
+        }
+        
+        /* Top Bar Styling */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+            background: #fff;
+            padding: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        .action-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+        .btn-action {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: bold;
+        }
+        .btn-action:hover { background-color: #0056b3; }
+        .btn-add-date { background-color: #fd7e14; }
+        .btn-add-date:hover { background-color: #e86e0b; }
+        .btn-save { background-color: #28a745; }
+        .btn-save:hover { background-color: #218838; }
+        .btn-csv { background-color: #17a2b8; }
+        .btn-csv:hover { background-color: #117a8b; }
+        .btn-catalog { background-color: #6f42c1; }
+        .btn-catalog:hover { background-color: #59339d; }
+
+        .btn-reset { background-color: #dc3545; }
+        .btn-reset:hover { background-color: #c82333; }
+        
+        /* Dropdown Menu Styling */
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        .btn-dropdown {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            margin-top: 2px;
+            background-color: #ffffff;
+            min-width: 320px;
+            box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            overflow: hidden;
+            z-index: 1001;
+        }
+        .dropdown-menu-catalog {
+            border-color: #d1c4e9;
+        }
+        .dropdown-menu-entries {
+            border-color: #b2ebf2;
+        }
+        .dropdown-menu button {
+            width: 100%;
+            padding: 10px 14px;
+            text-align: left;
+            background: transparent;
+            border: none;
+            font-size: 12.5px;
+            font-weight: bold;
+            color: #333333;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background-color 0.15s ease, color 0.15s ease;
+        }
+        .dropdown-menu-catalog button:hover {
+            background-color: #f0ebf8;
+            color: #6f42c1;
+        }
+        .dropdown-menu-entries button:hover {
+            background-color: #e0f7fa;
+            color: #117a8b;
+        }
+        .dropdown:hover .dropdown-menu {
+            display: block;
+        }
+
+        .doc-code {
+            text-align: center;
+            font-weight: bold;
+            font-size: 14px;
+            line-height: 1.4;
+            white-space: nowrap;
+        }
+
+        .sheet {
+            background: #fff;
+            padding: 25px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            position: relative;
+        }
+        
+        .sheet-divider {
+            border: 0;
+            height: 3px;
+            background: #333;
+            margin: 30px 0;
+            background-image: linear-gradient(to right, #ccc, #333, #ccc);
+        }
+
+        .print-continuation-banner { display: none; }
+        h1, h2, h3 { text-align: center; margin: 4px 0; }
+        
+        .header-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px 20px;
+            margin-bottom: 20px;
+            margin-top: 15px;
+            border: 2px solid #000;
+            padding: 12px;
+        }
+        .header-grid div { display: flex; flex-direction: column; }
+        .header-grid label { font-weight: bold; font-size: 12px; }
+        .header-grid input {
+            border: none; border-bottom: 1px solid #ccc;
+            font-size: 13px; padding: 4px 0; outline: none;
+        }
+        
+        table {
+            width: 100%; border-collapse: collapse;
+            margin-bottom: 15px; table-layout: fixed; 
+        }
+        th, td {
+            border: 1px solid #000; padding: 3px 5px;
+            text-align: left; overflow: hidden;
+        }
+        th { background-color: #eee; font-size: 12px; }
+        
+        .col-desc { width: 50%; }
+        .col-qty { width: 8%; }
+        .col-unit { width: 7%; }
+        .col-rate { width: 9%; }
+        .col-cost { width: 13%; text-align: right; font-weight: bold; }
+        .col-total { width: 13%; text-align: right; font-weight: bold; }
+        
+        .desc-cell { display: flex; align-items: center; gap: 6px; width: 100%; }
+        .desc-cell input { flex-grow: 1; min-width: 0; }
+
+        input[type="text"], input[type="number"], input[type="date"] {
+            width: 100%; box-sizing: border-box; border: 1px solid transparent;
+            padding: 3px; font-size: 13px;
+        }
+        input[type="number"] { text-align: right; }
+        input[type="text"]:focus, input[type="number"]:focus, input[type="date"]:focus {
+            border: 1px solid #007bff; background-color: #f0f8ff; outline: none;
+        }
+        
+        .section-title { font-weight: bold; background-color: #f9f9f9; }
+        .markup-row td { background-color: #fefefe; }
+        .total-row td { font-weight: bold; background-color: #e6e6e6; }
+        .grand-total { font-size: 16px; background-color: #d4edda !important; }
+        
+        .btn-add {
+            background-color: #28a745; color: white; border: none; padding: 3px 6px;
+            cursor: pointer; border-radius: 3px; font-size: 11px; margin-left: 10px;
+        }
+        .btn-add:hover { background-color: #218838; }
+        .btn-remove {
+            background-color: #dc3545; color: white; border: none; padding: 2px 6px;
+            cursor: pointer; border-radius: 3px; font-size: 11px; flex-shrink: 0;
+            width: 22px; text-align: center;
+        }
+        .editable-rate {
+            width: 70px !important; border: 1px solid #ccc !important;
+            background-color: #fff !important; display: inline-block;
+        }
+        .readonly-input { background-color: #e9ecef; color: #495057; border: 1px solid #ced4da !important; }
+
+        .work-accomplished { margin-top: 20px; margin-bottom: 15px; }
+        .work-line {
+            border: none !important; border-bottom: 1px solid #000 !important;
+            width: 100%; margin-bottom: 6px; padding: 3px 0 !important;
+            background-color: transparent !important; border-radius: 0 !important;
+            font-family: inherit; font-size: 13px;
+        }
+        .work-line:focus { border-bottom: 2px solid #007bff !important; }
+
+        .signature-container { display: flex; justify-content: space-between; margin-top: 40px; font-size: 12px; }
+        .sig-box { display: flex; flex-direction: column; justify-content: flex-end; }
+        .sig-line-top { border-top: 1px solid #000; padding-top: 5px; text-align: center; }
+        .footer-note { font-size: 11px; margin-top: 8px; line-height: 1.4; }
+
+        /* Print Stage */
+        #print-pages { display:none; }
+        .print-page-stage { display:block; }
+        .print-page {
+            width: 7.5in; height: 13.5in; box-sizing: border-box; position: relative;
+            overflow: hidden; background: #fff; font-family: Arial, sans-serif; font-size: 12px;
+        }
+        .print-header-area { height: 2.05in; box-sizing: border-box; padding-top: 0.30in; position: relative; }
+        .print-doc-code { position:absolute; top:0.05in; right:0; text-align:right; font-weight:bold; font-size:10px; line-height:1.15; }
+        .print-main-title { text-align:center; font-weight:bold; font-size:12px; line-height:1.15; }
+        .print-report-title { text-align:center; font-weight:bold; font-size:14px; line-height:1.15; margin-top:2px; }
+        .print-header-grid { margin-top:10px; border:2px solid #000; padding:8px; display:grid; grid-template-columns:1fr 1fr; gap:6px 15px; box-sizing:border-box; }
+        .print-header-grid div { display:flex; flex-direction:column; }
+        .print-header-grid label { font-weight:bold; font-size:10px; }
+        .print-header-grid input[type="text"], .print-header-grid input[type="date"] {
+            border:none !important; background:transparent !important; padding:0 !important; margin:0 !important; font-size:10px;
+        }
+        .print-body-area { width:7.5in; height:10.85in; box-sizing:border-box; overflow:hidden; }
+        .print-table-area { width:7.5in; box-sizing:border-box; overflow:visible; margin-top:0.12in; }
+        .print-page table { width:100%; border-collapse:collapse; table-layout:fixed; margin:0; }
+        .print-page th,.print-page td {
+            border:1px solid #000; padding:3px 4px; text-align:left; overflow:hidden;
+            font-size:10px; line-height:1.05;
+        }
+        .print-page th { background-color:#eee; font-size:10px; }
+        .print-page input[type="text"], .print-page input[type="number"], .print-page input[type="date"] {
+            border:none !important; background:transparent !important; padding:0 !important; margin:0 !important; font-size:10px; box-sizing:border-box;
+        }
+        .print-page .btn-add, .print-page .btn-remove, .print-page .print-hide, .print-page .action-buttons { display:none !important; }
+        .print-page .section-title { font-weight:bold; background-color:#f9f9f9; }
+        .print-page .markup-row td { background-color:#fefefe; }
+        .print-page .total-row td { font-weight:bold; background-color:#e6e6e6; }
+        .print-page .grand-total td { background-color:#d4edda !important; }
+        .print-page .print-footer-note { font-size:9px; margin-top:7px; line-height:1.2; }
+        .print-page .print-work-accomplished { margin-top:10px; margin-bottom:8px; }
+        .print-page .print-work-accomplished .work-line {
+            display:block; width:100%; height:15px; border:none !important; border-bottom:1px solid #000 !important;
+            padding:0 !important; margin:0 0 3px 0 !important; background:transparent !important;
+        }
+        .print-page .print-statement { font-size:10px; margin:17px 0 0 0; }
+        .print-page .print-signatures { display:flex; justify-content:space-between; margin-top:20px; font-size:9px; }
+        .print-body-area .print-end-matter { display:block; }
+        .print-page .print-sig-box { display:flex; flex-direction:column; justify-content:flex-end; }
+        .print-page .print-sig-line { border-top:1px solid #000; padding-top:3px; text-align:center; }
+
+        @media print {
+            @page { size: legal portrait; margin: 0; }
+            html, body { margin:0 !important; padding:0 !important; background:#fff !important; }
+            .main-container { display:none !important; }
+            #print-pages { display:block !important; }
+            .print-page {
+                width:7.5in; height:13.5in; margin:0 0.5in 0.5in 0.5in;
+                box-sizing:border-box; overflow:hidden; page-break-after:always; break-after:page;
+            }
+            .print-body-area { height:10.85in; overflow:hidden; }
+            .print-page:last-child { page-break-after:auto; break-after:auto; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Dynamic Catalog Datalists -->
+<datalist id="labor-list"></datalist>
+<datalist id="equipment-list"></datalist>
+
+<div id="print-pages" aria-hidden="true"></div>
+
+<div class="main-container">
+    <div class="top-bar">
+        <div class="action-buttons">
+            <button class="btn-action" onclick="printForm()">🖨️ Print/Save to PDF</button>
+            <button class="btn-action btn-save" onclick="saveHTML()">💾 Save Form</button>
+            
+            <!-- Current Entries Dropdown Menu -->
+            <div class="dropdown">
+                <button class="btn-action btn-csv btn-dropdown" type="button">📊 Current Entries ▾</button>
+                <div class="dropdown-menu dropdown-menu-entries">
+                    <button type="button" onclick="exportCSV()">💾 Save Entries in *.CSV</button>
+                    <button type="button" onclick="document.getElementById('csv-file-input').click()">📁 Import *.CSV file</button>
+                </div>
+            </div>
+            <input type="file" id="csv-file-input" accept=".csv" style="display:none;" onchange="importCSV(event)">
+            
+            <!-- Workers & Equipment Pulldown Menu -->
+            <div class="dropdown">
+                <button class="btn-action btn-catalog btn-dropdown" type="button">👷 Workers &amp; Equip. ▾</button>
+                <div class="dropdown-menu dropdown-menu-catalog">
+                    <button type="button" onclick="downloadCatalogTemplate()">📄 Download Workers &amp; Equipment Template</button>
+                    <button type="button" onclick="document.getElementById('catalog-file-input').click()">📁 Import Updated Contractor's Workers and Equipment</button>
+                </div>
+            </div>
+            <input type="file" id="catalog-file-input" accept=".csv" style="display:none;" onchange="importCatalogCSV(event)">
+            
+            <button class="btn-action btn-reset" onclick="resetAllEntries()">🗑️ Reset all Entries</button>
+            <button class="btn-action btn-add-date" onclick="addSheet()">📅 Add Date</button>
+        </div>
+        <div class="doc-code">
+            DOT4-006<br>
+            (HWY-Cr12/97)
+        </div>
+    </div>
+
+    <div id="sheets-container">
+        <!-- First Sheet Data -->
+        <div class="sheet">
+            <h3>STATE OF HAWAII DEPARTMENT OF TRANSPORTATION</h3>
+            <h2>DAILY FORCE ACCOUNT REPORT</h2>
+            <br>
+
+            <div class="header-grid">
+                <div><label>Contract No:</label><input type="text" class="hdr-contract-no" value=""></div>
+                <div><label>Date:</label><input type="date" class="hdr-date" value=""></div>
+                <div><label>Project Name:</label><input type="text" class="hdr-project-name" value=""></div>
+                <div><label>Contractor / Subcontractor:</label><input type="text" class="hdr-contractor" value=""></div>
+                <div><label>Project No.:</label><input type="text" class="hdr-project-no" value=""></div>
+                <div><label>Pay Item No.:</label><input type="text" class="hdr-pay-item-no" value=""></div>
+                <div><label>Change Order No.:</label><input type="text" class="hdr-change-order" value="NA"></div>
+                <div><label>Item No. & Description:</label><input type="text" class="hdr-item-desc" value=""></div>
+            </div>
+
+            <table class="fa-table">
+                <thead>
+                    <tr>
+                        <th class="col-desc">DESCRIPTION</th>
+                        <th class="col-qty">QTY</th>
+                        <th class="col-unit">UNIT</th>
+                        <th class="col-rate">RATE ($)</th>
+                        <th class="col-cost">COST ($)</th>
+                        <th class="col-total">TOTAL ($)</th>
+                    </tr>
+                </thead>
+                
+                <!-- A.1 Labor -->
+                <tbody class="tbody-labor">
+                    <tr class="section-title">
+                        <td colspan="6">A.1 Labor <button type="button" class="btn-add print-hide" onclick="addLaborRow(this.closest('.sheet'))">➕ Add Labor</button></td>
+                    </tr>
+                </tbody>
+                <tbody>
+                    <tr>
+                        <td colspan="5" style="text-align: right; font-style: italic;">Labor Subtotal</td>
+                        <td class="sub-labor col-total">$0.00</td>
+                    </tr>
+                </tbody>
+
+                <!-- A.2 Fringe -->
+                <tbody class="tbody-fringe">
+                    <tr class="section-title">
+                        <td colspan="6">A.2 Fringe Benefits <span style="font-size:11px; font-weight:normal; margin-left:10px; color:#555;">(Workers and hours auto-sync with A.1)</span></td>
+                    </tr>
+                </tbody>
+                <tbody>
+                    <tr>
+                        <td colspan="5" style="text-align: right; font-style: italic;">Fringe Subtotal</td>
+                        <td class="sub-fringe col-total">$0.00</td>
+                    </tr>
+                    <tr class="markup-row">
+                        <td colspan="4" style="text-align: right;">Contractor's Operating Expense, Overhead & Profit: <b>20%</b></td>
+                        <td class="base-labor-ohp col-cost">$0.00</td>
+                        <td class="val-labor-ohp col-total">$0.00</td>
+                    </tr>
+                    <tr class="markup-row">
+                        <td colspan="4" style="text-align: right;"><b>B. INSURANCE & TAX * ON LABOR</b> <input type="number" class="rate-ins editable-rate" value="25" step="0.01">%</td>
+                        <td class="base-ins col-cost">$0.00</td>
+                        <td class="val-ins col-total">$0.00</td>
+                    </tr>
+                    <tr class="markup-row">
+                        <td colspan="4" style="text-align: right;">OH - Insurance & Tax: <b>6%</b></td>
+                        <td class="base-ins-ohp col-cost">$0.00</td>
+                        <td class="val-ins-ohp col-total">$0.00</td>
+                    </tr>
+                </tbody>
+
+                <!-- C. Materials -->
+                <tbody class="tbody-materials">
+                    <tr class="section-title">
+                        <td colspan="6">C. MATERIALS <button type="button" class="btn-add print-hide" onclick="addRow(this.closest('.sheet'), '.tbody-materials')">➕ Add Material</button></td>
+                    </tr>
+                </tbody>
+                <tbody>
+                    <tr>
+                        <td colspan="5" style="text-align: right; font-style: italic;">Materials Subtotal</td>
+                        <td class="sub-mat col-total">$0.00</td>
+                    </tr>
+                    <tr class="markup-row">
+                        <td colspan="4" style="text-align: right;">Contractor's Operating Expense, Overhead & Profit: <b>20%</b></td>
+                        <td class="base-mat-ohp col-cost">$0.00</td>
+                        <td class="val-mat-ohp col-total">$0.00</td>
+                    </tr>
+                </tbody>
+
+                <!-- D. Equipment -->
+                <tbody class="tbody-equipment">
+                    <tr class="section-title">
+                        <td colspan="6">D. EQUIPMENT <button type="button" class="btn-add print-hide" onclick="addRow(this.closest('.sheet'), '.tbody-equipment', 'HRS')">➕ Add Equipment</button></td>
+                    </tr>
+                </tbody>
+                <tbody>
+                    <tr>
+                        <td colspan="5" style="text-align: right; font-style: italic;">Equipment Subtotal</td>
+                        <td class="sub-eq col-total">$0.00</td>
+                    </tr>
+                </tbody>
+
+                <!-- E. Subcontractor -->
+                <tbody class="tbody-sub">
+                    <tr class="section-title">
+                        <td colspan="6">E. SUBCONTRACTOR <button type="button" class="btn-add print-hide" onclick="addRow(this.closest('.sheet'), '.tbody-sub')">➕ Add Subcontractor</button></td>
+                    </tr>
+                </tbody>
+                <tbody>
+                    <tr>
+                        <td colspan="5" style="text-align: right; font-style: italic;">Subcontractor Subtotal</td>
+                        <td class="sub-sub col-total">$0.00</td>
+                    </tr>
+                    <tr class="markup-row">
+                        <td colspan="4" style="text-align: right;">Contractor's Operating Expense, Overhead & Profit: <b>10%</b></td>
+                        <td class="base-sub-ohp col-cost">$0.00</td>
+                        <td class="val-sub-ohp col-total">$0.00</td>
+                    </tr>
+                </tbody>
+
+                <!-- Final Totals -->
+                <tbody>
+                    <tr class="total-row">
+                        <td colspan="5" style="text-align: right;">SUBTOTAL:</td>
+                        <td class="final-subtotal col-total">$0.00</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td colspan="4" style="text-align: right;">BOND FEE: <input type="number" class="rate-bond editable-rate" value="1" step="0.01">%</td>
+                        <td class="base-bond col-cost">$0.00</td>
+                        <td class="val-bond col-total">$0.00</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td colspan="5" style="text-align: right;">SUM OF TOTAL COLUMN (SUBTOTAL + BOND):</td>
+                        <td class="final-subtotal-bond col-total">$0.00</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td colspan="4" style="text-align: right;">STATE EXCISE TAX: <input type="number" class="rate-tax editable-rate" value="4.712" step="0.001">%</td>
+                        <td class="base-tax col-cost">$0.00</td>
+                        <td class="val-tax col-total">$0.00</td>
+                    </tr>
+                    <tr class="total-row grand-total">
+                        <td colspan="5" style="text-align: right;">GRAND TOTAL - THIS REPORT:</td>
+                        <td class="final-grand col-total">$0.00</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="footer-note">
+                * Public Liability & Property Damage Insurance, Social Security & Federal Unemployment Taxes, <br>
+                Workmen's Compensation & State Unemployment Contributions
+            </div>
+
+            <!-- Work Accomplished Section -->
+            <div class="work-accomplished">
+                <div style="font-size: 13px; margin-bottom: 4px;">Work Accomplished for the day under above force account:</div>
+                <input type="text" class="work-line" value="">
+                <input type="text" class="work-line" value="">
+                <input type="text" class="work-line" value="">
+                <input type="text" class="work-line" value="">
+            </div>
+
+            <p style="font-size: 13px;">The above is a true statement of all force account work for this date:</p>
+            
+            <!-- Exact Signature Layout -->
+            <div class="signature-container">
+                <div class="sig-box" style="width: 30%;">
+                    <div class="sig-line-top">HDOT Representative</div>
+                </div>
+                <div class="sig-box" style="width: 12%;">
+                    <div class="sig-line-top">DATE</div>
+                </div>
+                <div class="sig-box" style="width: 30%;">
+                    <div class="sig-line-top">CONTRACTOR'S REPRESENTATIVE</div>
+                </div>
+                <div class="sig-box" style="width: 12%;">
+                    <div class="sig-line-top">DATE</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Global Catalog Arrays
+    let laborCatalog = [];
+    let equipmentCatalog = [];
+
+    function generateId() { return 'id-' + Math.random().toString(36).substr(2, 9); }
+    function fmtC(num) { return num.toLocaleString('en-US', { style: 'currency', currency: 'USD' }); }
+    function formatDecimal(el) { if(el.value !== "") { el.value = parseFloat(el.value).toFixed(2); } }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        return text.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    /* Template CSV Download & Import */
+    function downloadCatalogTemplate() {
+        const sampleCsv = `TYPE,DESCRIPTION,UNIT,RATE,FRINGE_RATE\n` +
+                          `LABOR,Foreman,HRS,55.00,22.50\n` +
+                          `LABOR,Journeyman Carpenter,HRS,48.00,19.50\n` +
+                          `LABOR,Equipment Operator,HRS,52.00,21.00\n` +
+                          `LABOR,Truck Driver,HRS,42.00,18.00\n` +
+                          `EQUIPMENT,Cat 320 Excavator,HRS,125.00,0.00\n` +
+                          `EQUIPMENT,Dump Truck 10CY,HRS,85.00,0.00\n` +
+                          `EQUIPMENT,Cat D6 Dozer,HRS,110.00,0.00\n` +
+                          `EQUIPMENT,Water Truck 2000 Gal,HRS,75.00,0.00`;
+
+        const blob = new Blob([sampleCsv], { type: 'text/csv;charset=utf-8;' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'Workers_And_Equipment_Template.csv';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(a.href);
+    }
+
+    function importCatalogCSV(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const text = e.target.result;
+            const lines = text.split(/\r\n|\n/);
+            if (lines.length <= 1) {
+                alert('The imported CSV template is empty or invalid.');
+                return;
+            }
+
+            laborCatalog = [];
+            equipmentCatalog = [];
+
+            for (let i = 1; i < lines.length; i++) {
+                if (!lines[i].trim()) continue;
+                const cols = parseCSVLine(lines[i]);
+                if (cols.length < 2) continue;
+
+                const type = (cols[0] || '').trim().toUpperCase();
+                const desc = (cols[1] || '').trim();
+                const unit = (cols[2] || 'HRS').trim();
+                const rate = (cols[3] || '0.00').trim();
+                const fringeRate = (cols[4] || '0.00').trim();
+
+                if (!desc) continue;
+
+                if (type === 'LABOR') {
+                    laborCatalog.push({ desc, unit, rate, fringeRate });
+                } else if (type === 'EQUIPMENT') {
+                    equipmentCatalog.push({ desc, unit, rate });
+                }
+            }
+
+            updateDatalists();
+            alert(`Successfully imported ${laborCatalog.length} worker classifications and ${equipmentCatalog.length} equipment items into dropdown menus.`);
+            event.target.value = '';
+        };
+        reader.readAsText(file);
+    }
+
+    function updateDatalists() {
+        const laborDatalist = document.getElementById('labor-list');
+        const eqDatalist = document.getElementById('equipment-list');
+
+        if (laborDatalist) {
+            laborDatalist.innerHTML = laborCatalog.map(item => `<option value="${escapeHtml(item.desc)}"></option>`).join('');
+        }
+        if (eqDatalist) {
+            eqDatalist.innerHTML = equipmentCatalog.map(item => `<option value="${escapeHtml(item.desc)}"></option>`).join('');
+        }
+    }
+
+    function handleLaborInput(inputEl, rowId) {
+        syncRow(rowId, 'desc', inputEl.value);
+        const matched = laborCatalog.find(item => item.desc.toLowerCase() === inputEl.value.trim().toLowerCase());
+        if (matched) {
+            const sheet = inputEl.closest('.sheet');
+            const lRow = sheet.querySelector('#' + rowId + '-labor');
+            const fRow = sheet.querySelector('#' + rowId + '-fringe');
+            if (lRow) {
+                if (matched.unit) lRow.querySelector('.val-unit').value = matched.unit;
+                if (matched.rate) lRow.querySelector('.val-rate').value = matched.rate;
+            }
+            if (fRow) {
+                if (matched.unit) fRow.querySelector('.val-unit').value = matched.unit;
+                if (matched.fringeRate) fRow.querySelector('.val-rate').value = matched.fringeRate;
+            }
+            calculate();
+        }
+    }
+
+    function handleEquipmentInput(inputEl) {
+        const matched = equipmentCatalog.find(item => item.desc.toLowerCase() === inputEl.value.trim().toLowerCase());
+        if (matched) {
+            const tr = inputEl.closest('tr');
+            if (matched.unit) tr.querySelector('.val-unit').value = matched.unit;
+            if (matched.rate) tr.querySelector('.val-rate').value = matched.rate;
+            calculate();
+        }
+    }
+
+    function addSheet() {
+        const sheets = document.querySelectorAll('.sheet');
+        const firstSheet = sheets[0];
+        if (!firstSheet) return;
+        
+        const newSheet = firstSheet.cloneNode(true);
+        
+        newSheet.querySelectorAll('.btn-remove-sheet').forEach(btn => btn.remove());
+        newSheet.querySelectorAll('.item-row').forEach(row => row.remove());
+        
+        const firstHeaderInputs = firstSheet.querySelectorAll('.header-grid input');
+        const newHeaderInputs = newSheet.querySelectorAll('.header-grid input');
+        firstHeaderInputs.forEach((input, index) => {
+            if (newHeaderInputs[index]) {
+                if (newHeaderInputs[index].classList.contains('hdr-date')) {
+                    newHeaderInputs[index].value = '';
+                } else {
+                    newHeaderInputs[index].value = input.value;
+                    newHeaderInputs[index].setAttribute('value', input.value);
+                }
+            }
+        });
+
+        newSheet.querySelectorAll('.work-line').forEach(input => input.value = '');
+        
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'btn-action btn-reset print-hide btn-remove-sheet';
+        removeBtn.style.cssText = 'float: right; margin-bottom: 15px; margin-top: -10px;';
+        removeBtn.innerHTML = '🗑️ Remove Date';
+        
+        const divider = document.createElement('hr');
+        divider.className = 'sheet-divider';
+        
+        removeBtn.onclick = function() { 
+            if(confirm('Are you sure you want to remove this date and all its data?')) {
+                divider.remove(); 
+                newSheet.remove(); 
+                calculate(); 
+            }
+        };
+        
+        newSheet.insertBefore(removeBtn, newSheet.firstChild);
+        
+        document.getElementById('sheets-container').appendChild(divider);
+        document.getElementById('sheets-container').appendChild(newSheet);
+        
+        initDefaultRows(newSheet);
+        calculate();
+    }
+
+    function addLaborRow(sheet, desc = '', qty = '0.00', unit = 'HRS', rate = '0.00', fringeRate = '0.00') {
+        const rowId = generateId();
+        
+        // Labor Row (Part A.1 - Pulldown enabled via datalist)
+        const trL = document.createElement('tr');
+        trL.className = 'item-row labor-row';
+        trL.id = rowId + '-labor';
+        trL.innerHTML = `
+            <td>
+                <div class="desc-cell">
+                    <button type="button" class="btn-remove print-hide" onclick="removeLaborRow(this, '${rowId}')">X</button>
+                    <input type="text" list="labor-list" class="val-desc" value="${escapeHtml(desc)}" placeholder="Worker Classification / Name" oninput="handleLaborInput(this, '${rowId}')">
+                </div>
+            </td>
+            <td><input type="number" class="val-qty" value="${qty}" step="0.5" oninput="syncRow('${rowId}', 'qty', this.value)" onchange="formatDecimal(this); syncRow('${rowId}', 'qty', this.value)"></td>
+            <td><input type="text" class="val-unit" value="${unit}" oninput="syncRow('${rowId}', 'unit', this.value)"></td>
+            <td><input type="number" class="val-rate" value="${rate}" step="0.01" onchange="formatDecimal(this)"></td>
+            <td class="cell-cost">$0.00</td>
+            <td style="text-align: right;"></td>
+        `;
+        sheet.querySelector('.tbody-labor').appendChild(trL);
+
+        // Fringe Row
+        const trF = document.createElement('tr');
+        trF.className = 'item-row fringe-row';
+        trF.id = rowId + '-fringe';
+        trF.innerHTML = `
+            <td>
+                <div class="desc-cell">
+                    <button type="button" class="btn-remove print-hide" style="visibility: hidden; pointer-events: none;">X</button>
+                    <input type="text" id="${rowId}-desc" class="readonly-input val-desc" value="${escapeHtml(desc)}" readonly placeholder="Auto-fills from Labor">
+                    <span class="print-hide" style="font-size:10px; color:#888; white-space:nowrap;">Linked</span>
+                </div>
+            </td>
+            <td><input type="number" id="${rowId}-qty" class="val-qty readonly-input" value="${qty}" step="0.5" readonly></td>
+            <td><input type="text" id="${rowId}-unit" class="readonly-input val-unit" value="${unit}" readonly></td>
+            <td><input type="number" class="val-rate" value="${fringeRate}" step="0.01" onchange="formatDecimal(this)"></td>
+            <td class="cell-cost">$0.00</td>
+            <td style="text-align: right;"></td>
+        `;
+        sheet.querySelector('.tbody-fringe').appendChild(trF);
+
+        calculate();
+    }
+
+    function syncRow(id, field, val) {
+        let el = document.getElementById(id + '-' + field);
+        if (el) el.value = val;
+    }
+
+    function removeLaborRow(btn, id) {
+        const sheet = btn.closest('.sheet');
+        const lRow = sheet.querySelector('#' + id + '-labor');
+        const fRow = sheet.querySelector('#' + id + '-fringe');
+        if(lRow) lRow.remove();
+        if(fRow) fRow.remove();
+        calculate();
+    }
+
+    function addRow(sheet, tbodySelector, defaultUnit = 'LS', desc = '', qty = '0.00', unit = '', rate = '0.00') {
+        const tbody = sheet.querySelector(tbodySelector);
+        const tr = document.createElement('tr');
+        tr.className = 'item-row';
+        const u = unit !== '' ? unit : defaultUnit;
+        
+        const isEquipment = tbodySelector === '.tbody-equipment';
+        const listAttr = isEquipment ? 'list="equipment-list"' : '';
+        const onInputAttr = isEquipment ? 'oninput="handleEquipmentInput(this)"' : '';
+
+        tr.innerHTML = `
+            <td>
+                <div class="desc-cell">
+                    <button type="button" class="btn-remove print-hide" onclick="removeRow(this)">X</button>
+                    <input type="text" ${listAttr} class="val-desc" value="${escapeHtml(desc)}" placeholder="Description" ${onInputAttr}>
+                </div>
+            </td>
+            <td><input type="number" class="val-qty" value="${qty}" step="0.5" onchange="formatDecimal(this)"></td>
+            <td><input type="text" class="val-unit" value="${u}"></td>
+            <td><input type="number" class="val-rate" value="${rate}" step="0.01" onchange="formatDecimal(this)"></td>
+            <td class="cell-cost">$0.00</td>
+            <td style="text-align: right;"></td>
+        `;
+        tbody.appendChild(tr);
+        calculate();
+    }
+
+    function removeRow(btn) {
+        btn.closest('tr').remove();
+        calculate();
+    }
+
+    function getSectionSum(sheet, tbodySelector) {
+        let sum = 0;
+        const rows = sheet.querySelectorAll(`${tbodySelector} .item-row`);
+        rows.forEach(row => {
+            const qty = parseFloat(row.querySelector('.val-qty').value) || 0;
+            const rate = parseFloat(row.querySelector('.val-rate').value) || 0;
+            const cost = qty * rate;
+            row.querySelector('.cell-cost').innerText = fmtC(cost);
+            sum += cost;
+        });
+        return sum;
+    }
+
+    function calculate() {
+        document.querySelectorAll('.sheet').forEach(sheet => {
+            const sumLabor = getSectionSum(sheet, '.tbody-labor');
+            const sumFringe = getSectionSum(sheet, '.tbody-fringe');
+            const sumMat = getSectionSum(sheet, '.tbody-materials');
+            const sumEq = getSectionSum(sheet, '.tbody-equipment');
+            const sumSub = getSectionSum(sheet, '.tbody-sub');
+
+            sheet.querySelector('.sub-labor').innerText = fmtC(sumLabor);
+            sheet.querySelector('.sub-fringe').innerText = fmtC(sumFringe);
+            sheet.querySelector('.sub-mat').innerText = fmtC(sumMat);
+            sheet.querySelector('.sub-eq').innerText = fmtC(sumEq);
+            sheet.querySelector('.sub-sub').innerText = fmtC(sumSub);
+
+            const laborFringeSum = sumLabor + sumFringe;
+            const laborOhp = laborFringeSum * 0.20;
+            sheet.querySelector('.base-labor-ohp').innerText = fmtC(laborFringeSum);
+            sheet.querySelector('.val-labor-ohp').innerText = fmtC(laborOhp);
+
+            const insRate = parseFloat(sheet.querySelector('.rate-ins').value) / 100 || 0;
+            const insAmount = sumLabor * insRate;
+            sheet.querySelector('.base-ins').innerText = fmtC(sumLabor);
+            sheet.querySelector('.val-ins').innerText = fmtC(insAmount);
+
+            const insOhp = insAmount * 0.06;
+            sheet.querySelector('.base-ins-ohp').innerText = fmtC(insAmount);
+            sheet.querySelector('.val-ins-ohp').innerText = fmtC(insOhp);
+
+            const matOhp = sumMat * 0.20;
+            sheet.querySelector('.base-mat-ohp').innerText = fmtC(sumMat);
+            sheet.querySelector('.val-mat-ohp').innerText = fmtC(matOhp);
+
+            const subOhp = sumSub * 0.10;
+            sheet.querySelector('.base-sub-ohp').innerText = fmtC(sumSub);
+            sheet.querySelector('.val-sub-ohp').innerText = fmtC(subOhp);
+
+            const masterSubtotal = laborFringeSum + laborOhp + insAmount + insOhp + 
+                                   sumMat + matOhp + sumEq + sumSub + subOhp;
+            sheet.querySelector('.final-subtotal').innerText = fmtC(masterSubtotal);
+
+            const bondRate = parseFloat(sheet.querySelector('.rate-bond').value) / 100 || 0;
+            const bondFee = masterSubtotal * bondRate;
+            sheet.querySelector('.base-bond').innerText = fmtC(masterSubtotal);
+            sheet.querySelector('.val-bond').innerText = fmtC(bondFee);
+
+            const subtotalAndBond = masterSubtotal + bondFee;
+            sheet.querySelector('.final-subtotal-bond').innerText = fmtC(subtotalAndBond);
+
+            const taxRate = parseFloat(sheet.querySelector('.rate-tax').value) / 100 || 0;
+            const taxAmount = subtotalAndBond * taxRate;
+            sheet.querySelector('.base-tax').innerText = fmtC(subtotalAndBond);
+            sheet.querySelector('.val-tax').innerText = fmtC(taxAmount);
+
+            const grandTotal = subtotalAndBond + taxAmount;
+            sheet.querySelector('.final-grand').innerText = fmtC(grandTotal);
+        });
+    }
+
+    function saveHTML() {
+        const inputs = document.querySelectorAll('input');
+        inputs.forEach(input => {
+            if (input.type === 'text' || input.type === 'number' || input.type === 'date') {
+                input.setAttribute('value', input.value);
+            }
+        });
+        const htmlContent = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+        const blob = new Blob([htmlContent], { type: 'text/html' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'Saved_Force_Account_Form.html';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(a.href);
+    }
+
+    function parseCSVLine(line) {
+        let result = [];
+        let startValue = 0;
+        let inQuotes = false;
+        for (let i = 0; i < line.length; i++) {
+            if (line[i] === '"') {
+                inQuotes = !inQuotes;
+            } else if (line[i] === ',' && !inQuotes) {
+                let val = line.substring(startValue, i);
+                if (val.startsWith('"') && val.endsWith('"')) {
+                    val = val.substring(1, val.length - 1).replace(/""/g, '"');
+                }
+                result.push(val);
+                startValue = i + 1;
+            }
+        }
+        let val = line.substring(startValue);
+        if (val.startsWith('"') && val.endsWith('"')) {
+            val = val.substring(1, val.length - 1).replace(/""/g, '"');
+        }
+        result.push(val);
+        return result;
+    }
+
+    function exportCSV() {
+        let csvRows = [];
+        function escapeCsv(val) {
+            if (val === null || val === undefined) val = '';
+            val = String(val).replace(/"/g, '""');
+            return `"${val}"`;
+        }
+
+        csvRows.push([escapeCsv('SHEET_INDEX'), escapeCsv('SECTION'), escapeCsv('FIELD'), escapeCsv('VALUE'), escapeCsv('QTY'), escapeCsv('UNIT'), escapeCsv('RATE')]);
+        
+        document.querySelectorAll('.sheet').forEach((sheet, index) => {
+            const headerInputs = {
+                'Contract No': sheet.querySelector('.hdr-contract-no').value,
+                'Date': sheet.querySelector('.hdr-date').value,
+                'Project Name': sheet.querySelector('.hdr-project-name').value,
+                'Contractor / Subcontractor': sheet.querySelector('.hdr-contractor').value,
+                'Project No.': sheet.querySelector('.hdr-project-no').value,
+                'Pay Item No.': sheet.querySelector('.hdr-pay-item-no').value,
+                'Change Order No.': sheet.querySelector('.hdr-change-order').value,
+                'Item No. & Description': sheet.querySelector('.hdr-item-desc').value
+            };
+            for (const [k, v] of Object.entries(headerInputs)) {
+                csvRows.push([index, escapeCsv('HEADER'), escapeCsv(k), escapeCsv(v), escapeCsv(''), escapeCsv(''), escapeCsv('')]);
+            }
+
+            csvRows.push([index, escapeCsv('RATE'), escapeCsv('Insurance & Tax Rate'), escapeCsv(sheet.querySelector('.rate-ins').value), escapeCsv(''), escapeCsv(''), escapeCsv('')]);
+            csvRows.push([index, escapeCsv('RATE'), escapeCsv('Bond Fee Rate'), escapeCsv(sheet.querySelector('.rate-bond').value), escapeCsv(''), escapeCsv(''), escapeCsv('')]);
+            csvRows.push([index, escapeCsv('RATE'), escapeCsv('State Excise Tax Rate'), escapeCsv(sheet.querySelector('.rate-tax').value), escapeCsv(''), escapeCsv(''), escapeCsv('')]);
+
+            const laborRows = sheet.querySelectorAll('.tbody-labor .labor-row');
+            laborRows.forEach((lRow) => {
+                const rowId = lRow.id.replace('-labor', '');
+                const fRow = sheet.querySelector(`#${rowId}-fringe`);
+                const desc = lRow.querySelector('.val-desc').value;
+                const qty = lRow.querySelector('.val-qty').value;
+                const unit = lRow.querySelector('.val-unit').value;
+                const lRate = lRow.querySelector('.val-rate').value;
+                const fRate = fRow ? fRow.querySelector('.val-rate').value : '0.00';
+                csvRows.push([index, escapeCsv('LABOR'), escapeCsv(desc), escapeCsv(fRate), escapeCsv(qty), escapeCsv(unit), escapeCsv(lRate)]);
+            });
+
+            ['.tbody-materials', '.tbody-equipment', '.tbody-sub'].forEach(selector => {
+                const type = selector.replace('.tbody-', '').toUpperCase();
+                sheet.querySelectorAll(`${selector} .item-row`).forEach(row => {
+                    csvRows.push([index, escapeCsv(type), escapeCsv(row.querySelector('.val-desc').value), escapeCsv(''), escapeCsv(row.querySelector('.val-qty').value), escapeCsv(row.querySelector('.val-unit').value), escapeCsv(row.querySelector('.val-rate').value)]);
+                });
+            });
+
+            const workLines = sheet.querySelectorAll('.work-accomplished .work-line');
+            workLines.forEach((wLine, idx) => {
+                csvRows.push([index, escapeCsv('WORK_ACCOMPLISHED'), escapeCsv(`Line ${idx+1}`), escapeCsv(wLine.value), escapeCsv(''), escapeCsv(''), escapeCsv('')]);
+            });
+        });
+
+        const csvContent = csvRows.map(e => e.join(",")).join("\n");
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'Force_Account_Report.csv';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(a.href);
+    }
+
+    function importCSV(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const text = e.target.result;
+            const lines = text.split(/\r\n|\n/);
+            if (lines.length <= 1) {
+                alert('The imported CSV file is empty or invalid.');
+                return;
+            }
+
+            const sheetDataMap = {};
+            for (let i = 1; i < lines.length; i++) {
+                if (!lines[i].trim()) continue;
+                const cols = parseCSVLine(lines[i]);
+                if (cols.length < 4) continue;
+                
+                const sheetIdx = cols[0];
+                const section = cols[1];
+                const field = cols[2];
+                const val = cols[3];
+                const qty = cols[4] || '';
+                const unit = cols[5] || '';
+                const rate = cols[6] || '';
+
+                if (!sheetDataMap[sheetIdx]) {
+                    sheetDataMap[sheetIdx] = { headers: {}, rates: {}, labor: [], materials: [], equipment: [], sub: [], work: [] };
+                }
+
+                if (section === 'HEADER') {
+                    sheetDataMap[sheetIdx].headers[field] = val;
+                } else if (section === 'RATE') {
+                    sheetDataMap[sheetIdx].rates[field] = val;
+                } else if (section === 'LABOR') {
+                    sheetDataMap[sheetIdx].labor.push({ desc: field, fringeRate: val, qty: qty, unit: unit, rate: rate });
+                } else if (section === 'MATERIALS') {
+                    sheetDataMap[sheetIdx].materials.push({ desc: field, qty: qty, unit: unit, rate: rate });
+                } else if (section === 'EQUIPMENT') {
+                    sheetDataMap[sheetIdx].equipment.push({ desc: field, qty: qty, unit: unit, rate: rate });
+                } else if (section === 'SUBCONTRACTOR') {
+                    sheetDataMap[sheetIdx].sub.push({ desc: field, qty: qty, unit: unit, rate: rate });
+                } else if (section === 'WORK_ACCOMPLISHED') {
+                    sheetDataMap[sheetIdx].work.push(val);
+                }
+            }
+
+            const sheetIndices = Object.keys(sheetDataMap).sort((a,b) => Number(a) - Number(b));
+            if (sheetIndices.length === 0) {
+                alert('No valid sheet data found in the CSV.');
+                return;
+            }
+
+            const sheets = document.querySelectorAll('.sheet');
+            for (let i = 1; i < sheets.length; i++) { sheets[i].remove(); }
+            document.querySelectorAll('.sheet-divider').forEach(el => el.remove());
+
+            sheetIndices.forEach((sIdx, idx) => {
+                let targetSheet;
+                if (idx === 0) {
+                    targetSheet = document.querySelector('.sheet');
+                    targetSheet.querySelectorAll('.item-row').forEach(r => r.remove());
+                } else {
+                    addSheet();
+                    const allSheets = document.querySelectorAll('.sheet');
+                    targetSheet = allSheets[allSheets.length - 1];
+                    targetSheet.querySelectorAll('.item-row').forEach(r => r.remove());
+                }
+
+                const data = sheetDataMap[sIdx];
+
+                const headerMap = {
+                    'Contract No': targetSheet.querySelector('.hdr-contract-no'),
+                    'Date': targetSheet.querySelector('.hdr-date'),
+                    'Project Name': targetSheet.querySelector('.hdr-project-name'),
+                    'Contractor / Subcontractor': targetSheet.querySelector('.hdr-contractor'),
+                    'Project No.': targetSheet.querySelector('.hdr-project-no'),
+                    'Pay Item No.': targetSheet.querySelector('.hdr-pay-item-no'),
+                    'Change Order No.': targetSheet.querySelector('.hdr-change-order'),
+                    'Item No. & Description': targetSheet.querySelector('.hdr-item-desc')
+                };
+                for (const [k, inputEl] of Object.entries(headerMap)) {
+                    if (inputEl && data.headers[k] !== undefined) {
+                        inputEl.value = data.headers[k];
+                        inputEl.setAttribute('value', data.headers[k]);
+                    }
+                }
+
+                if (data.rates['Insurance & Tax Rate'] !== undefined) targetSheet.querySelector('.rate-ins').value = data.rates['Insurance & Tax Rate'];
+                if (data.rates['Bond Fee Rate'] !== undefined) targetSheet.querySelector('.rate-bond').value = data.rates['Bond Fee Rate'];
+                if (data.rates['State Excise Tax Rate'] !== undefined) targetSheet.querySelector('.rate-tax').value = data.rates['State Excise Tax Rate'];
+
+                if (data.labor.length > 0) {
+                    data.labor.forEach(l => {
+                        addLaborRow(targetSheet, l.desc, l.qty, l.unit, l.rate, l.fringeRate);
+                    });
+                } else {
+                    for(let i=0; i<8; i++) addLaborRow(targetSheet);
+                }
+
+                if (data.materials.length > 0) {
+                    data.materials.forEach(m => {
+                        addRow(targetSheet, '.tbody-materials', 'LS', m.desc, m.qty, m.unit, m.rate);
+                    });
+                } else {
+                    for(let i=0; i<3; i++) addRow(targetSheet, '.tbody-materials', 'LS');
+                }
+
+                if (data.equipment.length > 0) {
+                    data.equipment.forEach(eq => {
+                        addRow(targetSheet, '.tbody-equipment', 'HRS', eq.desc, eq.qty, eq.unit, eq.rate);
+                    });
+                } else {
+                    for(let i=0; i<5; i++) addRow(targetSheet, '.tbody-equipment', 'HRS');
+                }
+
+                if (data.sub.length > 0) {
+                    data.sub.forEach(sub => {
+                        addRow(targetSheet, '.tbody-sub', 'LS', sub.desc, sub.qty, sub.unit, sub.rate);
+                    });
+                } else {
+                    addRow(targetSheet, '.tbody-sub', 'LS');
+                }
+
+                const workLines = targetSheet.querySelectorAll('.work-accomplished .work-line');
+                data.work.forEach((wVal, wIdx) => {
+                    if (workLines[wIdx]) workLines[wIdx].value = wVal;
+                });
+            });
+
+            calculate();
+            event.target.value = '';
+            alert('CSV file successfully imported with all corresponding sheets.');
+        };
+        reader.readAsText(file);
+    }
+
+    function resetAllEntries() {
+        if (!confirm('Are you sure you want to reset all entries and remove extra dates?')) return;
+        
+        const sheets = document.querySelectorAll('.sheet');
+        for (let i = 1; i < sheets.length; i++) {
+            sheets[i].remove();
+        }
+        document.querySelectorAll('.sheet-divider').forEach(el => el.remove());
+
+        const sheet = document.querySelector('.sheet');
+        sheet.querySelectorAll('.header-grid input').forEach(inp => {
+            if (inp.className.includes('hdr-change-order')) inp.value = 'NA';
+            else inp.value = '';
+        });
+
+        sheet.querySelector('.rate-ins').value = '25';
+        sheet.querySelector('.rate-bond').value = '1';
+        sheet.querySelector('.rate-tax').value = '4.712';
+
+        sheet.querySelectorAll('.item-row').forEach(row => row.remove());
+        sheet.querySelectorAll('.work-line').forEach(wl => wl.value = '');
+
+        initDefaultRows(sheet);
+        calculate();
+    }
+
+    document.addEventListener('input', calculate);
+
+    function initDefaultRows(sheet) {
+        if(sheet.querySelectorAll('.labor-row').length === 0) {
+            for(let i=0; i<8; i++) addLaborRow(sheet);
+            for(let i=0; i<3; i++) addRow(sheet, '.tbody-materials', 'LS');
+            for(let i=0; i<5; i++) addRow(sheet, '.tbody-equipment', 'HRS');
+            addRow(sheet, '.tbody-sub', 'LS');
+        }
+    }
+
+    window.onload = function() {
+        initDefaultRows(document.querySelector('.sheet'));
+        calculate();
+    }
+
+    function clonePrintHeader(continued, sheet) {
+        const area = document.createElement('div');
+        area.className = 'print-header-area';
+
+        const code = document.createElement('div');
+        code.className = 'print-doc-code';
+        code.innerHTML = 'DOT4-006<br>(HWY-Cr12/97)';
+        area.appendChild(code);
+
+        const state = document.createElement('div');
+        state.className = 'print-main-title';
+        state.textContent = 'STATE OF HAWAII DEPARTMENT OF TRANSPORTATION';
+        area.appendChild(state);
+
+        const report = document.createElement('div');
+        report.className = 'print-report-title';
+        report.textContent = continued ? 'DAILY FORCE ACCOUNT REPORT (CONTINUED)' : 'DAILY FORCE ACCOUNT REPORT';
+        area.appendChild(report);
+
+        const sourceGrid = sheet.querySelector('.header-grid');
+        if (sourceGrid) {
+            const grid = sourceGrid.cloneNode(true);
+            grid.className = 'print-header-grid';
+            grid.querySelectorAll('.btn-add,.btn-remove,.print-hide').forEach(el => el.remove());
+            grid.querySelectorAll('input').forEach(inp => {
+                if (inp.type === 'text' || inp.type === 'number' || inp.type === 'date') inp.value = inp.value;
+            });
+            area.appendChild(grid);
+        }
+        return area;
+    }
+
+    function clonePrintTableRows(rows, sheet) {
+        const table = document.createElement('table');
+        const sourceHead = sheet.querySelector('.fa-table thead tr');
+        const thead = document.createElement('thead');
+        if (sourceHead) thead.appendChild(sourceHead.cloneNode(true));
+        table.appendChild(thead);
+        const tbody = document.createElement('tbody');
+        rows.forEach(r => {
+            const c = r.cloneNode(true);
+            c.querySelectorAll('.btn-add,.btn-remove,.print-hide').forEach(el => el.remove());
+            tbody.appendChild(c);
+        });
+        table.appendChild(tbody);
+        return table;
+    }
+
+    function addPrintEndMatter(page, sheet) {
+        const footer = sheet.querySelector('.footer-note');
+        if (footer) {
+            const f = document.createElement('div');
+            f.className = 'print-footer-note';
+            f.innerHTML = footer.innerHTML;
+            page.appendChild(f);
+        }
+        const work = sheet.querySelector('.work-accomplished');
+        if (work) {
+            const w = document.createElement('div');
+            w.className = 'print-work-accomplished';
+            const label = work.querySelector('div');
+            if (label) {
+                const l = label.cloneNode(true); l.style.fontSize='10px'; w.appendChild(l);
+            }
+            work.querySelectorAll('.work-line').forEach(src => {
+                const cloneLine = src.cloneNode(true);
+                cloneLine.value = src.value;
+                w.appendChild(cloneLine);
+            });
+            page.appendChild(w);
+        }
+        const statement = sheet.querySelector('p');
+        if (statement) {
+            const s = document.createElement('div'); s.className='print-statement'; s.textContent=statement.textContent; page.appendChild(s);
+        }
+        const sigs = sheet.querySelector('.signature-container');
+        if (sigs) {
+            const wrap = document.createElement('div'); wrap.className='print-signatures';
+            sigs.querySelectorAll('.sig-box').forEach(src => {
+                const box=document.createElement('div'); box.className='print-sig-box';
+                const m=(src.getAttribute('style')||'').match(/width:\s*([^;]+)/); box.style.width=m?m[1]:'20%';
+                const line=document.createElement('div'); line.className='print-sig-line'; line.textContent=src.textContent.trim(); box.appendChild(line); wrap.appendChild(box);
+            });
+            page.appendChild(wrap);
+        }
+    }
+
+    function newPrintPage(root, continued, sheet) {
+        const page = document.createElement('div');
+        page.className = 'print-page';
+        page.appendChild(clonePrintHeader(continued, sheet));
+        
+        const bodyArea = document.createElement('div');
+        bodyArea.className = 'print-body-area';
+        
+        const tableArea = document.createElement('div');
+        tableArea.className = 'print-table-area';
+        const table = clonePrintTableRows([], sheet);
+        tableArea.appendChild(table);
+        bodyArea.appendChild(tableArea);
+        
+        page.appendChild(bodyArea);
+        root.appendChild(page);
+        return page;
+    }
+
+    function pageFits(page) {
+        const area = page.querySelector('.print-body-area');
+        return area && area.scrollHeight <= area.clientHeight + 1;
+    }
+
+    function cleanPrintClone(el) {
+        el.querySelectorAll('.btn-add,.btn-remove,.print-hide').forEach(node => node.remove());
+        el.querySelectorAll('input').forEach(inp => {
+            inp.setAttribute('value', inp.value);
+            if (inp.value) inp.setAttribute('value', inp.value);
+        });
+        return el;
+    }
+
+    function buildExplicitPrintPages() {
+        const root = document.getElementById('print-pages');
+        root.innerHTML = '';
+        root.style.display = 'block';
+
+        document.querySelectorAll('.sheet').forEach(sheet => {
+            const rows = Array.from(sheet.querySelectorAll('.fa-table tbody > tr'));
+            let page = newPrintPage(root, false, sheet);
+            let tbody = page.querySelector('.print-table-area tbody');
+
+            for (const row of rows) {
+                const clone = cleanPrintClone(row.cloneNode(true));
+                tbody.appendChild(clone);
+
+                if (!pageFits(page)) {
+                    tbody.removeChild(clone);
+                    page = newPrintPage(root, true, sheet);
+                    tbody = page.querySelector('.print-table-area tbody');
+                    tbody.appendChild(cleanPrintClone(row.cloneNode(true)));
+                }
+            }
+
+            const endMatter = document.createElement('div');
+            endMatter.className = 'print-end-matter';
+            addPrintEndMatter(endMatter, sheet);
+            page.querySelector('.print-body-area').appendChild(endMatter);
+
+            while (!pageFits(page)) {
+                const currentRows = Array.from(page.querySelector('.print-table-area tbody').children);
+                if (currentRows.length === 0) break;
+
+                const last = currentRows[currentRows.length - 1];
+                last.remove();
+
+                let nextPage = root.lastElementChild;
+                if (!nextPage || nextPage === page) {
+                    nextPage = newPrintPage(root, true, sheet);
+                }
+
+                const nextTbody = nextPage.querySelector('.print-table-area tbody');
+                nextTbody.insertBefore(last, nextTbody.firstChild);
+
+                if (endMatter.parentNode) endMatter.remove();
+                addPrintEndMatter(nextPage.querySelector('.print-body-area') || nextPage, sheet);
+                page = nextPage;
+            }
+        });
+    }
+
+    function printForm() {
+        buildExplicitPrintPages();
+        requestAnimationFrame(() => requestAnimationFrame(() => window.print()));
+    }
+
+    window.addEventListener('afterprint', function(){
+        const root=document.getElementById('print-pages');
+        if(root){root.style.display='none';root.innerHTML='';}
+    });
+</script>
+</body>
+</html>

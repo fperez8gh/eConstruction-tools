@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Grade, Slope, or Taper Calculator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            margin-top: 40px;
+        }
+        label {
+            display: inline-block;
+            width: 150px;
+        }
+        input[type="text"] {
+            width: 100px;
+            font-size: 16px; /* Prevents iPhone zoom with viewport */
+        }
+        input[readonly] {
+            background-color: #f0f0f0;
+        }
+        .line {
+            margin-bottom: 10px;
+        }
+        .line input,
+        .line label,
+        .line span {
+            margin-right: 10px;
+        }
+        .versus-line {
+            margin-bottom: 10px;
+        }
+        .ratio-field {
+            margin-bottom: 20px;
+        }
+        .measurement-group {
+            margin-bottom: 20px;
+        }
+        .measurement-label {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .unit {
+            margin-left: 5px;
+        }
+        .or {
+            margin: 0 15px;
+        }
+        .inches {
+            color: blue;
+        }
+        .feet {
+            color: red;
+        }
+        .reset-button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .keypad {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 3px;
+            max-width: 300px;
+            margin: 0 0 15px 0;
+            text-align: center;
+        }
+        .key {
+            padding: 10px;
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .key:hover {
+            background-color: #e0e0e0;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Grade, Slope, or Taper Calculator</h2>
+
+<div class="line">
+    <input type="text" id="run" onfocus="setActiveInput(this)" oninput="calculateSlope()">
+    <label for="run">Run, Horizontal</label>
+</div>
+
+<div class="versus-line">
+    <span>versus</span>
+</div>
+
+<div class="line">
+    <input type="text" id="rise" onfocus="setActiveInput(this)" oninput="calculateSlope()">
+    <label for="rise">Rise, Vertical</label>
+</div>
+
+<div class="ratio-field">
+    <label for="ratio">Ratio (H:V):</label>
+    <input type="text" id="ratio" readonly>
+</div>
+
+<div>
+    <label for="slope">Slope (%):</label>
+    <input type="text" id="slope" onfocus="setActiveInput(this)" oninput="calculateRun()">
+</div>
+
+<br>
+
+<div class="keypad">
+    <div class="key" onclick="addNumber('1')">1</div>
+    <div class="key" onclick="addNumber('2')">2</div>
+    <div class="key" onclick="addNumber('3')">3</div>
+    <div class="key" onclick="addNumber('4')">4</div>
+    <div class="key" onclick="addNumber('5')">5</div>
+    <div class="key" onclick="addNumber('6')">6</div>
+    <div class="key" onclick="addNumber('7')">7</div>
+    <div class="key" onclick="addNumber('8')">8</div>
+    <div class="key" onclick="addNumber('9')">9</div>
+    <div class="key" onclick="addNumber('0')">0</div>
+    <div class="key" onclick="addNumber('.')">.</div>
+    <div class="key" onclick="clearInput()">C</div>
+</div>
+
+<div class="measurement-label">
+    <label>Actual Measurement</label>
+</div>
+
+<div class="measurement-group">
+    <label>Horizontal:</label><br>
+    <input type="text" id="horizontalInches" onfocus="setActiveInput(this)" oninput="calculateMeasurements('horizontal', 'inches')" placeholder="Inches">
+    <span class="unit inches">inches</span>
+    <span class="or">or</span>
+    <input type="text" id="horizontalFeet" onfocus="setActiveInput(this)" oninput="calculateMeasurements('horizontal', 'feet')" placeholder="Feet">
+    <span class="unit feet">feet</span>
+</div>
+
+<div class="measurement-group">
+    <label>Vertical:</label><br>
+    <input type="text" id="verticalInches" onfocus="setActiveInput(this)" oninput="calculateMeasurements('vertical', 'inches')" placeholder="Inches">
+    <span class="unit inches">inches</span>
+    <span class="or">or</span>
+    <input type="text" id="verticalFeet" onfocus="setActiveInput(this)" oninput="calculateMeasurements('vertical', 'feet')" placeholder="Feet">
+    <span class="unit feet">feet</span>
+</div>
+
+<button class="reset-button" onclick="resetForm()">Reset</button>
+
+<script>
+    const INCHES_PER_FOOT = 12;
+    let activeInput = null;
+
+    function setActiveInput(input) {
+        if (input.id !== 'ratio') {
+            activeInput = input;
+        }
+    }
+
+    function addNumber(num) {
+        if (activeInput && !activeInput.readOnly) {
+            let currentValue = activeInput.value || '';
+            if (num === '.' && currentValue.includes('.')) {
+                return;
+            }
+            activeInput.value = currentValue + num;
+            activeInput.oninput();
+        }
+    }
+
+    function clearInput() {
+        if (activeInput && !activeInput.readOnly) {
+            activeInput.value = '';
+            activeInput.oninput();
+        }
+    }
+
+    function calculateSlope() {
+        const run = parseFloat(document.getElementById('run').value);
+        const rise = parseFloat(document.getElementById('rise').value);
+
+        if (!isNaN(run) && !isNaN(rise) && run !== 0) {
+            const slope = (rise / run) * 100;
+            document.getElementById('slope').value = slope.toFixed(2);
+            document.getElementById('slope').readOnly = true;
+
+            const ratio = (run / rise).toFixed(2);
+            document.getElementById('ratio').value = `${ratio}H : 1V`;
+        } else {
+            document.getElementById('slope').readOnly = false;
+            document.getElementById('ratio').value = "";
+        }
+    }
+
+    function calculateRun() {
+        const slope = parseFloat(document.getElementById('slope').value);
+
+        if (!isNaN(slope)) {
+            const rise = 1;
+            const run = (rise / (slope / 100)).toFixed(2);
+            document.getElementById('run').value = run;
+            document.getElementById('rise').value = rise;
+            document.getElementById('run').readOnly = true;
+            document.getElementById('rise').readOnly = true;
+
+            const ratio = (run / rise).toFixed(2);
+            document.getElementById('ratio').value = `${ratio}H : 1V`;
+        } else {
+            document.getElementById('run').readOnly = false;
+            document.getElementById('rise').readOnly = false;
+            document.getElementById('ratio').value = "";
+        }
+    }
+
+    function calculateMeasurements(group, unit) {
+        const ratioField = document.getElementById('ratio').value;
+        const ratioMatch = ratioField.match(/^([\d.]+)H : 1V$/);
+        if (!ratioMatch) return;
+        const ratio = parseFloat(ratioMatch[1]);
+
+        if (group === 'horizontal') {
+            const horizontalInches = document.getElementById('horizontalInches');
+            const horizontalFeet = document.getElementById('horizontalFeet');
+            const verticalInches = document.getElementById('verticalInches');
+            const verticalFeet = document.getElementById('verticalFeet');
+
+            if (unit === 'inches') {
+                const inches = parseFloat(horizontalInches.value);
+                if (!isNaN(inches)) {
+                    horizontalFeet.value = (inches / INCHES_PER_FOOT).toFixed(2);
+                    const verticalInchesValue = (inches / ratio).toFixed(2);
+                    verticalInches.value = verticalInchesValue;
+                    verticalFeet.value = (verticalInchesValue / INCHES_PER_FOOT).toFixed(2);
+                }
+            } else if (unit === 'feet') {
+                const feet = parseFloat(horizontalFeet.value);
+                if (!isNaN(feet)) {
+                    horizontalInches.value = (feet * INCHES_PER_FOOT).toFixed(2);
+                    const verticalFeetValue = (feet / ratio).toFixed(2);
+                    verticalFeet.value = verticalFeetValue;
+                    verticalInches.value = (verticalFeetValue * INCHES_PER_FOOT).toFixed(2);
+                }
+            }
+        } else if (group === 'vertical') {
+            const horizontalInches = document.getElementById('horizontalInches');
+            const horizontalFeet = document.getElementById('horizontalFeet');
+            const verticalInches = document.getElementById('verticalInches');
+            const verticalFeet = document.getElementById('verticalFeet');
+
+            if (unit === 'inches') {
+                const inches = parseFloat(verticalInches.value);
+                if (!isNaN(inches)) {
+                    verticalFeet.value = (inches / INCHES_PER_FOOT).toFixed(2);
+                    const horizontalInchesValue = (inches * ratio).toFixed(2);
+                    horizontalInches.value = horizontalInchesValue;
+                    horizontalFeet.value = (horizontalInchesValue / INCHES_PER_FOOT).toFixed(2);
+                }
+            } else if (unit === 'feet') {
+                const feet = parseFloat(verticalFeet.value);
+                if (!isNaN(feet)) {
+                    verticalInches.value = (feet * INCHES_PER_FOOT).toFixed(2);
+                    const horizontalFeetValue = (feet * ratio).toFixed(2);
+                    horizontalFeet.value = horizontalFeetValue;
+                    horizontalInches.value = (horizontalFeetValue * INCHES_PER_FOOT).toFixed(2);
+                }
+            }
+        }
+    }
+
+    function resetForm() {
+        document.getElementById('run').value = "";
+        document.getElementById('rise').value = "";
+        document.getElementById('slope').value = "";
+        document.getElementById('ratio').value = "";
+        document.getElementById('horizontalInches').value = "";
+        document.getElementById('horizontalFeet').value = "";
+        document.getElementById('verticalInches').value = "";
+        document.getElementById('verticalFeet').value = "";
+        document.getElementById('slope').readOnly = false;
+        document.getElementById('run').readOnly = false;
+        document.getElementById('rise').readOnly = false;
+        activeInput = null;
+    }
+</script>
+
+</body>
+</html>

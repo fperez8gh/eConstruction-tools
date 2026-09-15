@@ -1,0 +1,472 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asphalt Pavement Calculator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            margin-top: 40px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .input-group input {
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        .inline-group {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        .inline-group input {
+            flex: 1;
+        }
+        .radio-group {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .radio-group label {
+            font-size: 0.85em;
+            margin-right: 10px;
+        }
+        .button-group {
+            margin-top: 20px;
+        }
+        .button-group button {
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+        .read-only-label {
+            color: red;
+            font-size: 0.9em;
+            display: block;
+            margin-top: 2px;
+        }
+        #thickness {
+            width: 120px;
+            flex: none;
+        }
+        #thickness-fraction {
+            font-weight: bold;
+            color: #333;
+            white-space: nowrap;
+            margin-left: 10px;
+            display: none;
+        }
+        .keypad {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 3px;
+            max-width: 300px;
+            margin: 15px 0;
+        }
+        .key {
+            padding: 10px;
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            cursor: pointer;
+            font-size: 16px;
+            text-align: center;
+        }
+        .key:hover {
+            background-color: #e0e0e0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Asphalt Pavement Calculator</h1>
+
+        <!-- Mix Selection Radio Buttons -->
+        <div class="radio-group">
+            <label>
+                <input type="radio" name="mix" value="2.67" checked> ACB
+            </label>
+            <label>
+                <input type="radio" name="mix" value="2.65"> Mix IV
+            </label>
+            <label>
+                <input type="radio" name="mix" value="2.70"> Mix V
+            </label>
+            <label>
+                <input type="radio" name="mix" value="other"> Other
+            </label>
+        </div>
+
+        <!-- Specific Gravity Input -->
+        <div class="input-group">
+            <label for="specific-gravity">Maximum Specific Gravity (Rice):</label>
+            <input type="text" id="specific-gravity" value="2.67" onfocus="setActiveInput(this)">
+            <span id="specific-gravity-read-only" class="read-only-label"></span>
+        </div>
+
+        <!-- Relative Compaction Input -->
+        <div class="input-group">
+            <label for="relative-compaction">Assumed Relative Compaction (%):</label>
+            <input type="text" id="relative-compaction" value="94.5" onfocus="setActiveInput(this)">
+            <span id="relative-compaction-read-only" class="read-only-label"></span>
+        </div>
+
+        <!-- Solve For Radio Buttons -->
+        <div class="radio-group">
+            <label>
+                <input type="radio" name="solve-for" value="tonnage" checked> Solve Tonnage
+            </label>
+            <label>
+                <input type="radio" name="solve-for" value="length"> Solve Area & Length
+            </label>
+            <label>
+                <input type="radio" name="solve-for" value="width"> Solve Area & Avg Width
+            </label>
+            <label>
+                <input type="radio" name="solve-for" value="thickness"> Solve Thickness
+            </label>
+        </div>
+
+        <!-- Tonnage and Thickness Inputs -->
+        <div class="inline-group">
+            <div class="input-group">
+                <label for="tonnage">Tonnage:</label>
+                <input type="text" id="tonnage" onfocus="setActiveInput(this)">
+                <span id="tonnage-read-only" class="read-only-label"></span>
+            </div>
+            <div class="input-group">
+                <label for="thickness">Thickness (inches):</label>
+                <div class="inline-group">
+                    <input type="text" id="thickness" onfocus="setActiveInput(this)">
+                    <span id="thickness-fraction" class="read-only-label"></span>
+                </div>
+                <span id="thickness-read-only" class="read-only-label"></span>
+            </div>
+        </div>
+
+        <!-- Volume Inputs -->
+        <div class="inline-group">
+            <div class="input-group">
+                <label for="volume">Volume (cubic feet):</label>
+                <input type="text" id="volume" readonly>
+                <span class="read-only-label">Read Only</span>
+            </div>
+            <div class="input-group">
+                <label for="volume-cubic-yard">Volume (cubic yard):</label>
+                <input type="text" id="volume-cubic-yard" readonly>
+                <span class="read-only-label">Read Only</span>
+            </div>
+        </div>
+
+        <!-- Area Inputs -->
+        <div class="inline-group">
+            <div class="input-group">
+                <label for="area-sqft">Area (square feet):</label>
+                <input type="text" id="area-sqft" readonly>
+                <span class="read-only-label">Read Only</span>
+            </div>
+            <div class="input-group">
+                <label for="area-sqyd">Area (square yard):</label>
+                <input type="text" id="area-sqyd" readonly>
+                <span class="read-only-label">Read Only</span>
+            </div>
+        </div>
+
+        <!-- Width and Length Inputs -->
+        <div class="inline-group">
+            <div class="input-group">
+                <label for="width">Average Width (feet):</label>
+                <input type="text" id="width" value="11" onfocus="setActiveInput(this)">
+                <span id="width-read-only" class="read-only-label"></span>
+            </div>
+            <div class="input-group">
+                <label for="length">Length (feet):</label>
+                <input type="text" id="length" onfocus="setActiveInput(this)">
+                <span id="length-read-only" class="read-only-label"></span>
+            </div>
+        </div>
+
+        <!-- Keypad -->
+        <div class="keypad">
+            <div class="key" onclick="addNumber('1')">1</div>
+            <div class="key" onclick="addNumber('2')">2</div>
+            <div class="key" onclick="addNumber('3')">3</div>
+            <div class="key" onclick="addNumber('4')">4</div>
+            <div class="key" onclick="addNumber('5')">5</div>
+            <div class="key" onclick="addNumber('6')">6</div>
+            <div class="key" onclick="addNumber('7')">7</div>
+            <div class="key" onclick="addNumber('8')">8</div>
+            <div class="key" onclick="addNumber('9')">9</div>
+            <div class="key" onclick="addNumber('0')">0</div>
+            <div class="key" onclick="addNumber('.')">.</div>
+            <div class="key" onclick="addNumber('C')">C</div>
+        </div>
+
+        <!-- Reset Button -->
+        <div class="button-group">
+            <button onclick="resetFields()">Reset</button>
+        </div>
+    </div>
+
+    <script>
+        // Keypad Variables
+        let activeInput = null;
+        let lastInput = null;
+        let userInputs = new Set();
+
+        function setActiveInput(input) {
+            if (!input.readOnly) {
+                activeInput = input;
+                lastInput = input;
+            } else {
+                activeInput = null;
+            }
+        }
+
+        function addNumber(num) {
+            if (activeInput && !activeInput.readOnly) {
+                if (num === 'C') {
+                    clearLastInput();
+                    return;
+                }
+                let currentValue = activeInput.value || '';
+                if (num === '.' && currentValue.includes('.')) {
+                    return;
+                }
+                activeInput.value = currentValue + num;
+                lastInput = activeInput;
+                userInputs.add(activeInput);
+                activeInput.dispatchEvent(new Event('input'));
+            }
+        }
+
+        function clearLastInput() {
+            if (lastInput && !lastInput.readOnly) {
+                lastInput.value = '';
+                userInputs.delete(lastInput);
+                lastInput.focus();
+                calculate();
+            }
+        }
+
+        // Function to convert decimal inches to fractional format
+        function decimalToFraction(decimal) {
+            const fractions = [
+                { decimal: 0.125, fraction: '1/8' },
+                { decimal: 0.25, fraction: '1/4' },
+                { decimal: 0.375, fraction: '3/8' },
+                { decimal: 0.5, fraction: '1/2' },
+                { decimal: 0.625, fraction: '5/8' },
+                { decimal: 0.75, fraction: '3/4' },
+                { decimal: 0.875, fraction: '7/8' }
+            ];
+
+            const wholeNumber = Math.floor(decimal);
+            const decimalPart = decimal - wholeNumber;
+
+            let closestFraction = '';
+            let smallestDifference = Infinity;
+
+            fractions.forEach(frac => {
+                const difference = Math.abs(decimalPart - frac.decimal);
+                if (difference < smallestDifference) {
+                    smallestDifference = difference;
+                    closestFraction = frac.fraction;
+                }
+            });
+
+            if (decimalPart < 0.0625) { // Adjusted tolerance for cleaner rounding
+                return `${wholeNumber}"`;
+            }
+            if (wholeNumber === 0) {
+                return `${closestFraction}"`;
+            }
+            return `${wholeNumber} ${closestFraction}"`;
+        }
+
+        // Update specific gravity based on selected mix
+        document.querySelectorAll('input[name="mix"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                if (this.value === 'other') {
+                    document.getElementById('specific-gravity').value = '2.5';
+                } else {
+                    document.getElementById('specific-gravity').value = this.value;
+                }
+                calculate();
+            });
+        });
+
+        // Function to reset fields when solve-for selection changes
+        function resetFieldsOnSolveForChange() {
+            document.getElementById('tonnage').value = '';
+            document.getElementById('thickness').value = '';
+            document.getElementById('width').value = '11';
+            document.getElementById('length').value = '';
+            document.getElementById('area-sqft').value = '';
+            document.getElementById('area-sqyd').value = '';
+            document.getElementById('volume').value = '';
+            document.getElementById('volume-cubic-yard').value = '';
+        }
+
+        // Function to set fields as read-only based on solve-for selection
+        function updateReadOnlyFields() {
+            const solveFor = document.querySelector('input[name="solve-for"]:checked').value;
+
+            document.getElementById('tonnage').readOnly = false;
+            document.getElementById('thickness').readOnly = false;
+            document.getElementById('width').readOnly = false;
+            document.getElementById('length').readOnly = false;
+            document.getElementById('specific-gravity').readOnly = false;
+            document.getElementById('relative-compaction').readOnly = false;
+            document.getElementById('tonnage-read-only').textContent = '';
+            document.getElementById('thickness-read-only').textContent = '';
+            document.getElementById('width-read-only').textContent = '';
+            document.getElementById('length-read-only').textContent = '';
+            document.getElementById('specific-gravity-read-only').textContent = '';
+            document.getElementById('relative-compaction-read-only').textContent = '';
+
+            if (solveFor === 'tonnage') {
+                document.getElementById('tonnage').readOnly = true;
+                document.getElementById('tonnage-read-only').textContent = 'Read Only';
+            } else if (solveFor === 'thickness') {
+                document.getElementById('thickness').readOnly = true;
+                document.getElementById('thickness-read-only').textContent = 'Read Only';
+            } else if (solveFor === 'width') {
+                document.getElementById('width').readOnly = true;
+                document.getElementById('width-read-only').textContent = 'Read Only';
+            } else if (solveFor === 'length') {
+                document.getElementById('length').readOnly = true;
+                document.getElementById('length-read-only').textContent = 'Read Only';
+            }
+        }
+
+        // Update read-only fields and reset values when solve-for selection changes
+        document.querySelectorAll('input[name="solve-for"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                resetFieldsOnSolveForChange();
+                updateReadOnlyFields();
+                calculate();
+            });
+        });
+
+        // Initialize read-only fields on page load
+        updateReadOnlyFields();
+
+        // Add event listeners for dynamic calculations
+        const inputFields = ['specific-gravity', 'relative-compaction', 'tonnage', 'thickness', 'width', 'length'];
+        inputFields.forEach(field => {
+            document.getElementById(field).addEventListener('input', calculate);
+        });
+
+        function calculate() {
+            const specificGravity = parseFloat(document.getElementById('specific-gravity').value);
+            const relativeCompaction = parseFloat(document.getElementById('relative-compaction').value) / 100;
+            let tonnage = parseFloat(document.getElementById('tonnage').value);
+            const thickness = parseFloat(document.getElementById('thickness').value);
+            const width = parseFloat(document.getElementById('width').value);
+            const length = parseFloat(document.getElementById('length').value);
+
+            const solveFor = document.querySelector('input[name="solve-for"]:checked').value;
+
+            let areaSqft, volume;
+
+            // Calculate tonnage first in "Solve Tonnage" mode to ensure it's available for volume calculation
+            if (solveFor === 'tonnage') {
+                if (!isNaN(thickness) && !isNaN(width) && !isNaN(length) && !isNaN(specificGravity) && !isNaN(relativeCompaction)) {
+                    tonnage = (specificGravity * 62.4 * relativeCompaction * (thickness / 12) * width * length) / 2000;
+                    document.getElementById('tonnage').value = tonnage.toFixed(2);
+                }
+            }
+
+            // Volume calculation (now uses the calculated tonnage in "Solve Tonnage" mode)
+            if (!isNaN(tonnage) && !isNaN(specificGravity) && !isNaN(relativeCompaction)) {
+                volume = (tonnage * 2000) / (specificGravity * 62.4 * relativeCompaction);
+                document.getElementById('volume').value = volume.toFixed(2);
+                document.getElementById('volume-cubic-yard').value = (volume / 27).toFixed(2);
+            } else {
+                document.getElementById('volume').value = '';
+                document.getElementById('volume-cubic-yard').value = '';
+            }
+
+            // Area calculation
+            if (solveFor === 'width' || solveFor === 'length') {
+                if (!isNaN(tonnage) && !isNaN(thickness) && !isNaN(specificGravity) && !isNaN(relativeCompaction)) {
+                    areaSqft = (tonnage * 2000) / (specificGravity * 62.4 * relativeCompaction * (thickness / 12));
+                }
+            } else {
+                if (!isNaN(width) && !isNaN(length)) {
+                    areaSqft = width * length;
+                }
+            }
+
+            if (!isNaN(areaSqft)) {
+                document.getElementById('area-sqft').value = areaSqft.toFixed(2);
+                document.getElementById('area-sqyd').value = (areaSqft / 9).toFixed(2);
+            } else {
+                document.getElementById('area-sqft').value = '';
+                document.getElementById('area-sqyd').value = '';
+            }
+
+            // Other solve-for calculations
+            if (solveFor === 'thickness') {
+                if (!isNaN(tonnage) && !isNaN(width) && !isNaN(length) && !isNaN(specificGravity) && !isNaN(relativeCompaction)) {
+                    const calculatedThickness = ((tonnage * 2000) / (specificGravity * 62.4 * relativeCompaction * width * length)) * 12;
+                    document.getElementById('thickness').value = calculatedThickness.toFixed(2);
+                }
+            } else if (solveFor === 'width') {
+                if (!isNaN(areaSqft) && !isNaN(length)) {
+                    const calculatedWidth = areaSqft / length;
+                    document.getElementById('width').value = calculatedWidth.toFixed(2);
+                }
+            } else if (solveFor === 'length') {
+                if (!isNaN(areaSqft) && !isNaN(width)) {
+                    const calculatedLength = areaSqft / width;
+                    document.getElementById('length').value = calculatedLength.toFixed(2);
+                }
+            }
+
+            const thicknessFraction = document.getElementById('thickness-fraction');
+            const thicknessInput = document.getElementById('thickness');
+            const thicknessValue = parseFloat(thicknessInput.value);
+            if (!isNaN(thicknessValue) && thicknessValue !== 0 && thicknessInput.readOnly) {
+                const fractionalThickness = decimalToFraction(thicknessValue);
+                thicknessFraction.textContent = fractionalThickness;
+                thicknessFraction.style.display = 'inline';
+            } else {
+                thicknessFraction.textContent = '';
+                thicknessFraction.style.display = 'none';
+            }
+        }
+
+        function resetFields() {
+            document.getElementById('tonnage').value = '';
+            document.getElementById('thickness').value = '';
+            document.getElementById('area-sqft').value = '';
+            document.getElementById('area-sqyd').value = '';
+            document.getElementById('volume').value = '';
+            document.getElementById('volume-cubic-yard').value = '';
+            document.getElementById('width').value = '11';
+            document.getElementById('length').value = '';
+            document.getElementById('specific-gravity').value = '2.67';
+            document.getElementById('relative-compaction').value = '94.5';
+            userInputs.clear();
+            lastInput = null;
+            activeInput = null;
+
+            const thicknessFraction = document.getElementById('thickness-fraction');
+            thicknessFraction.textContent = '';
+            thicknessFraction.style.display = 'none';
+        }
+    </script>
+</body>
+</html>

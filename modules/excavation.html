@@ -1,0 +1,238 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excavation Calculator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 20px;
+            padding: 20px;
+        }
+        .input-group {
+            margin: 15px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input[type="text"] { /* Changed to type="text" for keypad compatibility */
+            width: 100px;
+            padding: 5px;
+        }
+        select {
+            padding: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #f44336;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #d32f2f;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            display: none;
+            color: green;
+        }
+        .keypad {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 3px;
+            max-width: 300px;
+            margin: 0 0 15px 0;
+            text-align: center;
+        }
+        .key {
+            padding: 10px;
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .key:hover {
+            background-color: #e0e0e0;
+        }
+    </style>
+</head>
+<body>
+    <h2>Excavation Calculator (English Units)</h2>
+    <p>Enter any two values (the third will be calculated automatically):</p>
+
+    <div class="input-group">
+        <label>Surface Area:</label>
+        <input type="text" id="areaValue" onfocus="setActiveInput(this)" oninput="calculate()">
+        <select id="areaUnit" onchange="calculate()">
+            <option value="sq ft">sq ft</option>
+            <option value="sq yd">sq yd</option>
+        </select>
+    </div>
+
+    <div class="input-group">
+        <label>Depth:</label>
+        <input type="text" id="depthValue" onfocus="setActiveInput(this)" oninput="calculate()">
+        <select id="depthUnit" onchange="calculate()">
+            <option value="ft">ft</option>
+            <option value="in">in</option>
+        </select>
+    </div>
+
+    <div class="input-group">
+        <label>Volume:</label>
+        <input type="text" id="volumeValue" onfocus="setActiveInput(this)" oninput="calculate()">
+        <select id="volumeUnit" onchange="calculate()">
+            <option value="cu ft">cu ft</option>
+            <option value="cu yd">cu yd</option>
+        </select>
+    </div>
+
+    <div class="keypad">
+        <div class="key" onclick="addNumber('1')">1</div>
+        <div class="key" onclick="addNumber('2')">2</div>
+        <div class="key" onclick="addNumber('3')">3</div>
+        <div class="key" onclick="addNumber('4')">4</div>
+        <div class="key" onclick="addNumber('5')">5</div>
+        <div class="key" onclick="addNumber('6')">6</div>
+        <div class="key" onclick="addNumber('7')">7</div>
+        <div class="key" onclick="addNumber('8')">8</div>
+        <div class="key" onclick="addNumber('9')">9</div>
+        <div class="key" onclick="addNumber('0')">0</div>
+        <div class="key" onclick="addNumber('.')">.</div>
+        <div class="key" onclick="clearInput()">C</div>
+    </div>
+
+    <button onclick="reset()">Reset</button>
+
+    <div id="result"></div>
+
+    <script>
+        let calculatedField = null; // Tracks which field was initially calculated
+        let activeInput = null; // Tracks the currently focused input for keypad
+
+        function setActiveInput(input) {
+            activeInput = input;
+        }
+
+        function addNumber(num) {
+            if (activeInput) {
+                let currentValue = activeInput.value || '';
+                if (num === '.' && currentValue.includes('.')) {
+                    return; // Prevent multiple decimal points
+                }
+                activeInput.value = currentValue + num;
+                calculate(); // Trigger calculation after keypad input
+            }
+        }
+
+        function clearInput() {
+            if (activeInput) {
+                activeInput.value = '';
+                calculate(); // Recalculate after clearing
+            }
+        }
+
+        function calculate() {
+            const areaValue = parseFloat(document.getElementById('areaValue').value) || null;
+            const areaUnit = document.getElementById('areaUnit').value;
+            const depthValue = parseFloat(document.getElementById('depthValue').value) || null;
+            const depthUnit = document.getElementById('depthUnit').value;
+            const volumeValue = parseFloat(document.getElementById('volumeValue').value) || null;
+            const volumeUnit = document.getElementById('volumeUnit').value;
+
+            const inputs = [
+                areaValue !== null,
+                depthValue !== null,
+                volumeValue !== null
+            ].filter(Boolean).length;
+
+            const resultDiv = document.getElementById('result');
+
+            if (inputs < 2) {
+                resultDiv.style.display = 'none';
+                return;
+            }
+
+            let areaFt2 = areaValue;
+            if (areaValue && areaUnit === 'sq yd') areaFt2 *= 9;
+
+            let depthFt = depthValue;
+            if (depthValue && depthUnit === 'in') depthFt /= 12;
+
+            let volumeFt3 = volumeValue;
+            if (volumeValue && volumeUnit === 'cu yd') volumeFt3 *= 27;
+
+            let result = '';
+
+            if (inputs === 2 && calculatedField === null) {
+                if (!areaValue) {
+                    calculatedField = 'area';
+                    areaFt2 = volumeFt3 / depthFt;
+                    const areaYd2 = areaFt2 / 9;
+                    result = `Calculated Surface Area:<br>
+                             ${areaFt2.toFixed(2)} square feet<br>
+                             ${areaYd2.toFixed(2)} square yards`;
+                    document.getElementById('areaValue').value = areaUnit === 'sq ft' ? areaFt2.toFixed(2) : areaYd2.toFixed(2);
+                } else if (!depthValue) {
+                    calculatedField = 'depth';
+                    depthFt = volumeFt3 / areaFt2;
+                    const depthIn = depthFt * 12;
+                    result = `Calculated Depth:<br>
+                             ${depthFt.toFixed(2)} feet<br>
+                             ${depthIn.toFixed(2)} inches`;
+                    document.getElementById('depthValue').value = depthUnit === 'ft' ? depthFt.toFixed(2) : depthIn.toFixed(2);
+                } else if (!volumeValue) {
+                    calculatedField = 'volume';
+                    volumeFt3 = areaFt2 * depthFt;
+                    const volumeYd3 = volumeFt3 / 27;
+                    result = `Calculated Volume:<br>
+                             ${volumeFt3.toFixed(2)} cubic feet<br>
+                             ${volumeYd3.toFixed(2)} cubic yards`;
+                    document.getElementById('volumeValue').value = volumeUnit === 'cu ft' ? volumeFt3.toFixed(2) : volumeYd3.toFixed(2);
+                }
+            } else if (inputs >= 2 && calculatedField) {
+                if (calculatedField === 'area') {
+                    areaFt2 = volumeFt3 / depthFt;
+                    const areaYd2 = areaFt2 / 9;
+                    result = `Calculated Surface Area:<br>
+                             ${areaFt2.toFixed(2)} square feet<br>
+                             ${areaYd2.toFixed(2)} square yards`;
+                    document.getElementById('areaValue').value = areaUnit === 'sq ft' ? areaFt2.toFixed(2) : areaYd2.toFixed(2);
+                } else if (calculatedField === 'depth') {
+                    depthFt = volumeFt3 / areaFt2;
+                    const depthIn = depthFt * 12;
+                    result = `Calculated Depth:<br>
+                             ${depthFt.toFixed(2)} feet<br>
+                             ${depthIn.toFixed(2)} inches`;
+                    document.getElementById('depthValue').value = depthUnit === 'ft' ? depthFt.toFixed(2) : depthIn.toFixed(2);
+                } else if (calculatedField === 'volume') {
+                    volumeFt3 = areaFt2 * depthFt;
+                    const volumeYd3 = volumeFt3 / 27;
+                    result = `Calculated Volume:<br>
+                             ${volumeFt3.toFixed(2)} cubic feet<br>
+                             ${volumeYd3.toFixed(2)} cubic yards`;
+                    document.getElementById('volumeValue').value = volumeUnit === 'cu ft' ? volumeFt3.toFixed(2) : volumeYd3.toFixed(2);
+                }
+            }
+
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = result;
+        }
+
+        function reset() {
+            document.getElementById('areaValue').value = '';
+            document.getElementById('depthValue').value = '';
+            document.getElementById('volumeValue').value = '';
+            document.getElementById('result').style.display = 'none';
+            calculatedField = null;
+            activeInput = null;
+        }
+    </script>
+</body>
+</html>

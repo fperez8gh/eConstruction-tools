@@ -1,0 +1,395 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Rebar Size Selector</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    .radio-list {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      margin: 10px 0;
+      gap: 10px;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      max-width: 800px;
+      margin-top: 20px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+    .circle {
+      border-radius: 50%;
+      background: steelblue;
+      margin: auto;
+    }
+    .reset-button {
+      background-color: red;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      margin-left: 10px;
+      cursor: pointer;
+    }
+    .reset-button:hover {
+      background-color: darkred;
+    }
+    .volume-input {
+      width: 80px;
+      margin: 0 auto;
+    }
+    .input-section {
+      margin-bottom: 10px;
+    }
+    #volumeSummary {
+      margin-top: 10px;
+      display: none;
+    }
+    #volumeSummary label {
+      margin-right: 5px;
+      margin-top: 5px;
+      display: inline-block;
+    }
+    #volumeSummary input {
+      width: 100px;
+      margin-top: 5px;
+    }
+    /* Hide spinner arrows for length inputs and Form volume */
+    .volume-input::-webkit-outer-spin-button,
+    .volume-input::-webkit-inner-spin-button,
+    #formVolume::-webkit-outer-spin-button,
+    #formVolume::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    .volume-input,
+    #formVolume {
+      -moz-appearance: textfield;
+    }
+  </style>
+</head>
+<body>
+  <h2>Rebar Selector for Concrete Pour</h2>
+
+  <!-- Step 1: Input for number of sizes -->
+  <div class="input-section">
+    <label for="numSizes">How many different rebar sizes?</label>
+    <input type="number" id="numSizes" min="1" max="12" value="1" inputmode="numeric" pattern="[0-9]*" oninput="applyLimit()">
+    <button class="reset-button" onclick="resetToDefault()">Reset</button>
+  </div>
+
+  <!-- Step 2: Checkbox selection -->
+  <div id="radioContainer" class="radio-list"></div>
+
+  <!-- Step 3: Output -->
+  <table id="infoTable" style="display:none;">
+    <thead>
+      <tr>
+        <th>Rebar No.</th>
+        <th>Nominal Dia (in)</th>
+        <th>Nominal Dia (mm)</th>
+        <th>Area (in²)</th>
+        <th>Area (mm²)</th>
+        <th>Weight (lb/ft)</th>
+        <th>Weight (kg/m)</th>
+        <th>Length (ft)</th>
+        <th>Volume (in³)</th>
+        <th>Weight (lb)</th>
+        <th>Visual</th>
+      </tr>
+    </thead>
+    <tbody id="infoBody"></tbody>
+  </table>
+  <div id="volumeSummary">
+    <div id="totalRebarVolume"></div>
+    <label for="formVolume">Form volume (cubic inches):</label>
+    <input type="number" id="formVolume" min="0" inputmode="numeric" value="">
+    <div id="actualConcreteVolume"></div>
+  </div>
+
+  <script>
+    const rebarData = {
+      "#3":  { diaIn: 0.375, diaMm: 9.525,  areaIn: "0.1106", areaMm: "71.35",  wLb: "0.376", wKg: "0.560" },
+      "#4":  { diaIn: 0.500, diaMm: 12.700, areaIn: "0.2006", areaMm: "129.42", wLb: "0.668", wKg: "0.994" },
+      "#5":  { diaIn: 0.625, diaMm: 15.875, areaIn: "0.3080", areaMm: "198.71", wLb: "1.043", wKg: "1.552" },
+      "#6":  { diaIn: 0.750, diaMm: 19.050, areaIn: "0.4440", areaMm: "286.45", wLb: "1.502", wKg: "2.235" },
+      "#7":  { diaIn: 0.875, diaMm: 22.225, areaIn: "0.6060", areaMm: "390.97", wLb: "2.044", wKg: "3.042" },
+      "#8":  { diaIn: 1.000, diaMm: 25.400, areaIn: "0.7850", areaMm: "506.45", wLb: "2.670", wKg: "3.973" },
+      "#9":  { diaIn: 1.128, diaMm: 28.651, areaIn: "1.0000", areaMm: "645.16", wLb: "3.400", wKg: "5.060" },
+      "#10": { diaIn: 1.270, diaMm: 32.258, areaIn: "1.2700", areaMm: "819.35", wLb: "4.303", wKg: "6.404" },
+      "#11": { diaIn: 1.410, diaMm: 35.814, areaIn: "1.5600", areaMm: "1006.45", wLb: "5.313", wKg: "7.907" },
+      "#14": { diaIn: 1.693, diaMm: 43.002, areaIn: "2.2500", areaMm: "1451.61", wLb: "8.365", wKg: "12.448" },
+      "#18": { diaIn: 2.257, diaMm: 57.328, areaIn: "4.0000", areaMm: "2580.64", wLb: "18.960", wKg: "28.216" }
+    };
+
+    let maxSelections = 1;
+    let rebarLengths = {};
+    let formVolumeValue = ''; // Initialize as empty string for blank input
+    let debounceTimeout = null;
+
+    console.log("Script loaded"); // Debug
+
+    // Initialize Form volume event listener
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log("DOM fully loaded, setting up formVolume listener"); // Debug
+      const formVolumeInput = document.getElementById("formVolume");
+      if (formVolumeInput) {
+        formVolumeInput.addEventListener('input', (e) => {
+          console.log(`Form volume input event triggered with value: ${e.target.value}`); // Debug
+          updateFormVolume(e.target.value);
+        });
+      }
+    });
+
+    function applyLimit() {
+      console.log("applyLimit called"); // Debug
+      try {
+        maxSelections = parseInt(document.getElementById("numSizes").value) || 1;
+        console.log("applyLimit: maxSelections =", maxSelections); // Debug
+        rebarLengths = {};
+        generateCheckboxes();
+        updateTable();
+      } catch (error) {
+        console.error("Error in applyLimit:", error); // Debug
+      }
+    }
+
+    function resetToDefault() {
+      console.log("resetToDefault called"); // Debug
+      try {
+        console.log("resetToDefault: Setting numSizes to 1"); // Debug
+        document.getElementById("numSizes").value = 1;
+        formVolumeValue = '';
+        maxSelections = 1;
+        rebarLengths = {};
+        generateCheckboxes();
+        updateTable();
+      } catch (error) {
+        console.error("Error in resetToDefault:", error); // Debug
+      }
+    }
+
+    function generateCheckboxes(selectedSizes = []) {
+      console.log("generateCheckboxes called with selectedSizes:", selectedSizes); // Debug
+      try {
+        const container = document.getElementById("radioContainer");
+        if (!container) {
+          console.error("Error: radioContainer not found"); // Debug
+          return;
+        }
+        container.innerHTML = "";
+        const sizesToShow = selectedSizes.length >= maxSelections ? selectedSizes : Object.keys(rebarData);
+        sizesToShow.forEach(size => {
+          const label = document.createElement("label");
+          const input = document.createElement("input");
+          input.type = "checkbox";
+          input.value = size;
+          input.name = "rebar";
+          input.onchange = enforceLimit;
+          if (selectedSizes.includes(size)) {
+            input.checked = true;
+          }
+          console.log("Generated checkbox for:", size); // Debug
+          label.appendChild(input);
+          label.appendChild(document.createTextNode(" " + size));
+          container.appendChild(label);
+        });
+      } catch (error) {
+        console.error("Error in generateCheckboxes:", error); // Debug
+      }
+    }
+
+    function enforceLimit(e) {
+      console.log("enforceLimit called for:", e.target.value, "checked:", e.target.checked); // Debug
+      try {
+        const checked = document.querySelectorAll("input[name='rebar']:checked");
+        console.log("enforceLimit: checked =", checked.length, "maxSelections =", maxSelections, "target checked =", e.target.checked); // Debug
+        if (checked.length > maxSelections + 1) {
+          console.log("Limit exceeded, unchecking:", e.target.value); // Debug
+          e.target.checked = false;
+          alert("You can only select " + maxSelections + " sizes.");
+          return;
+        }
+        if (checked.length >= maxSelections) {
+          const selectedSizes = Array.from(checked).map(input => input.value);
+          console.log("Max selections reached, regenerating checkboxes with:", selectedSizes); // Debug
+          generateCheckboxes(selectedSizes);
+        }
+        updateTable();
+      } catch (error) {
+        console.error("Error in enforceLimit:", error); // Debug
+      }
+    }
+
+    function updateTable() {
+      console.log("updateTable called"); // Debug
+      try {
+        const infoTable = document.getElementById("infoTable");
+        const infoBody = document.getElementById("infoBody");
+        const volumeSummary = document.getElementById("volumeSummary");
+        const totalRebarVolume = document.getElementById("totalRebarVolume");
+        const actualConcreteVolume = document.getElementById("actualConcreteVolume");
+        if (!infoTable) {
+          console.error("Error: infoTable not found"); // Debug
+          return;
+        }
+        if (!infoBody) {
+          console.error("Error: infoBody not found"); // Debug
+          return;
+        }
+        if (!volumeSummary || !totalRebarVolume || !actualConcreteVolume) {
+          console.error("Error: volumeSummary or its children not found"); // Debug
+          return;
+        }
+
+        const checked = document.querySelectorAll("input[name='rebar']:checked");
+        console.log("updateTable: checked =", checked.length); // Debug
+
+        // Set table visibility
+        infoTable.style.display = checked.length > 0 ? "table" : "none";
+        console.log("infoTable display set to:", checked.length > 0 ? "table" : "none"); // Debug
+
+        // Clear table body
+        infoBody.innerHTML = "";
+        let totalVolume = 0;
+
+        // Populate table rows
+        checked.forEach(sel => {
+          const val = sel.value;
+          const data = rebarData[val];
+          if (!data) {
+            console.error(`Error: No data for rebar ${val}`); // Debug
+            return;
+          }
+          const scale = 30;
+          const size = data.diaIn * scale;
+          const length = parseFloat(rebarLengths[val] || 0); // Treat empty as 0 for calculations
+          const volume = length * parseFloat(data.areaIn) * 12; // ft * in² * (in/ft) = in³
+          const weight = length * parseFloat(data.wLb); // ft * lb/ft = lb
+          console.log(`Calculating for ${val}: length=${length} ft, area=${data.areaIn} in², volume=${volume.toFixed(2)} in³, weight=${weight.toFixed(2)} lb`); // Debug
+          totalVolume += volume;
+
+          infoBody.innerHTML += `
+            <tr>
+              <td>${val}</td>
+              <td>${data.diaIn.toFixed(3)}</td>
+              <td>${data.diaMm.toFixed(3)}</td>
+              <td>${data.areaIn}</td>
+              <td>${data.areaMm}</td>
+              <td>${data.wLb}</td>
+              <td>${data.wKg}</td>
+              <td><input type="text" class="volume-input" inputmode="decimal" pattern="^[0-9]*(\\.[0-9]*)?$" value="${rebarLengths[val] || ''}" onchange="updateLength('${val}', this.value)"></td>
+              <td>${volume.toFixed(2)}</td>
+              <td>${weight.toFixed(2)}</td>
+              <td><div class="circle" style="width:${size}px;height:${size}px;"></div></td>
+            </tr>
+          `;
+        });
+
+        // Update volume summary only if rebars are selected
+        if (checked.length > 0) {
+          volumeSummary.style.display = "block";
+          const formVolume = parseFloat(formVolumeValue || 0); // Treat empty as 0 for calculations
+          const actualConcreteVol = formVolume - totalVolume;
+          totalRebarVolume.textContent = `Total Rebar Volume: ${totalVolume.toFixed(2)} in³`;
+          actualConcreteVolume.textContent = `Actual Concrete Volume: ${actualConcreteVol.toFixed(2)} in³`;
+          console.log("volumeSummary shown"); // Debug
+          console.log(`Form volume: ${formVolume.toFixed(2)} in³, Total rebar volume: ${totalVolume.toFixed(2)} in³, Actual concrete volume: ${actualConcreteVol.toFixed(2)} in³`); // Debug
+        } else {
+          volumeSummary.style.display = "none";
+          totalRebarVolume.textContent = "";
+          actualConcreteVolume.textContent = "";
+          console.log("volumeSummary hidden"); // Debug
+        }
+      } catch (error) {
+        console.error("Error in updateTable:", error); // Debug
+      }
+    }
+
+    function updateFormVolume(value) {
+      console.log(`updateFormVolume called with value: ${value}`); // Debug
+      try {
+        formVolumeValue = value; // Store as-is (empty string allowed)
+        // Debounce updateTable to prevent rapid re-renders
+        if (debounceTimeout) {
+          clearTimeout(debounceTimeout);
+          console.log("Cleared previous debounce timeout"); // Debug
+        }
+        debounceTimeout = setTimeout(() => {
+          console.log("Debounced updateTable call"); // Debug
+          updateTable();
+        }, 300);
+      } catch (error) {
+        console.error("Error in updateFormVolume:", error); // Debug
+      }
+    }
+
+    function updateLength(rebarSize, length) {
+      console.log(`updateLength called: ${rebarSize} set to ${length} ft`); // Debug
+      try {
+        rebarLengths[rebarSize] = length; // Store as-is (empty string allowed)
+        updateTable();
+      } catch (error) {
+        console.error("Error in updateLength:", error); // Debug
+      }
+    }
+
+    console.log("Initializing"); // Debug
+    try {
+      applyLimit();
+    } catch (error) {
+      console.error("Error during initialization:", error); // Debug
+    }
+  </script>
+</body>
+</html>
