@@ -1,0 +1,109 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>State DOT Inspector Dashboard</title>
+    <link rel="stylesheet" href="styles/styles.css"> <!-- Optional shared styles -->
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            min-height: 100vh;
+        }
+        .dropdown {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+        }
+        .dropdown-btn {
+            background-color: #2c3e50;
+            color: white;
+            padding: 8px 12px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            border-radius: 0 0 5px 0;
+            display: block; /* Ensure button stays visible */
+        }
+        .dropdown-btn:hover {
+            background-color: #34495e;
+        }
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: #2c3e50;
+            min-width: 200px;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
+            border-radius: 0 0 5px 5px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .dropdown-content.hidden {
+            display: none !important; /* Force hide when class is applied */
+        }
+        .dropdown-content a {
+            color: white;
+            padding: 8px 12px;
+            text-decoration: none;
+            display: block;
+            font-size: 14px;
+        }
+        .dropdown-content a:hover {
+            background-color: #34495e;
+        }
+        .dropdown:hover .dropdown-content:not(.hidden) {
+            display: block; /* Show only if not hidden */
+        }
+        .main-content {
+            background-color: #ecf0f1;
+            height: 100vh;
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="dropdown">
+        <button class="dropdown-btn">Inspector Tools ▼</button>
+        <div class="dropdown-content">
+            <a href="#" onclick="loadModule(event, 'modules/unit-conversion.html')">Unit Conversions</a>
+            <a href="#" onclick="loadModule(event, 'modules/density-mass-volume-calculator.html')">Density, Mass, Volume Calculator</a>
+            <a href="#" onclick="loadModule(event, 'modules/grade-slope-taper.html')">Grade, Slope or Taper</a>
+            <a href="#" onclick="loadModule(event, 'modules/excavation.html')">Excavation Calculator</a>
+            <a href="#" onclick="loadModule(event, 'modules/asphalt-pavement-calculator.html')">Asphalt Pavement Calculator</a>
+            <a href="#" onclick="loadModule(event, 'modules/concrete-yield-calculator.html')">Concrete Yield Calculator</a>
+            <a href="#" onclick="loadModule(event, 'modules/sand-cone-test.html')">Sand Cone Test</a>
+            <a href="#" onclick="loadModule(event, 'modules/sieve-analysis.html')">Sieve Analysis (JMF)</a>
+            <a href="#" onclick="loadModule(event, 'modules/DMS to Decimal Degrees Converter.html')">GPS Coordinates Converter</a>
+            <a href="#" onclick="loadModule(event, 'modules/rebar.html')">Rebar Selector</a>
+            <a href="#" onclick="loadModule(event, 'modules/force_account.html')">Force Account</a>
+            <a href="#" onclick="loadModule(event, 'modules/module11.html')">Module 10</a>
+            <a href="#" onclick="loadModule(event, 'modules/FSTQP.html')">Certification Practice Questions</a>
+            <a href="#" onclick="loadModule(event, 'modules/updates.html')">Updates & Support</a>
+        </div>
+    </div>
+    <div class="main-content">
+        <iframe id="module-frame" src="modules/unit-conversion.html"></iframe>
+    </div>
+
+    <script>
+        function loadModule(event, moduleUrl) {
+            event.preventDefault(); // Prevent any default link behavior
+            document.getElementById("module-frame").src = moduleUrl;
+            const dropdownContent = document.querySelector('.dropdown-content');
+            dropdownContent.classList.add('hidden'); // Hide dropdown content
+            // Remove 'hidden' class after a short delay to restore hover functionality
+            setTimeout(() => {
+                dropdownContent.classList.remove('hidden');
+            }, 100);
+            // Log button state for debugging
+            console.log("Button still there?", document.querySelector('.dropdown-btn'));
+        }
+    </script>
+</body>
+</html>
